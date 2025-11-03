@@ -29,4 +29,14 @@ public class HomeController {
 
         return "login";
     }
+
+    @GetMapping("/admin-dashboard")
+    public String adminDashboardPage() {
+        return "admin-dashboard";
+    }
+
+    @GetMapping("/register") public String registerPage() { return "register"; }
+    @GetMapping("/admin-bookings") public String adminBookingsPage() { return "admin-bookings"; }
+    @GetMapping("/admin-accommodations") public String adminAccommodationsPage() { return "admin-accommodations"; }
+
 }

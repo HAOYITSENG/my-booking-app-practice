@@ -13,9 +13,10 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
+
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
     }
 
     @Bean
@@ -27,16 +28,24 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/h2-console/**", "/login", "/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers("/api/**").authenticated()  // API 需要認證
+                        .requestMatchers("/api/admin/**", "/api/bookings/admin/**").hasAuthority("ADMIN")
+                        .requestMatchers("/h2-console/**", "/login", "/register", "/css/**", "/js/**", "/images/**","/api/auth/**").permitAll()
+                        .requestMatchers("/api/accommodations/**").permitAll()
+                        .requestMatchers("/api/**").hasAuthority("USER")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/", true)
-                        .failureUrl("/login?error=true")  // 添加失敗處理
+                        .successHandler((request, response, authentication) -> {
+                            boolean isAdmin = authentication.getAuthorities().stream()
+                                    .anyMatch(a -> a.getAuthority().equals("ADMIN"));
+                            response.sendRedirect(isAdmin ? "/admin-dashboard" : "/");
+                        })
+                        .failureUrl("/login?error=true")
                         .permitAll()
                 )
+
+
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout=true")
@@ -48,8 +57,8 @@ public class SecurityConfig {
                         .frameOptions(frameOptions -> frameOptions.sameOrigin())
                 )
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**", "/api/**")
-                        //.disable() // 完全停用 CSRF 保護（僅開發用）
+                        //.ignoringRequestMatchers("/h2-console/**", "/api/**")
+                        .disable() // 完全停用 CSRF 保護（僅開發用）
                 );
 
         return http.build();

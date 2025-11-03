@@ -3,7 +3,7 @@ package com.example.booking.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "users") // 避免與 SQL 的保留字 "user" 衝突
+@Table(name = "users") // 避免與 SQL 保留字衝突
 public class User {
 
     @Id
@@ -16,8 +16,8 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    // --- 可選：加入角色欄位（之後做權限管理）
-    // private String role;
+    @Column(nullable = false)
+    private String role = "USER"; // 預設角色
 
     // --- Getter & Setter ---
     public Long getId() {
@@ -42,5 +42,13 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }
