@@ -17,7 +17,7 @@ public class User {
     private String password;
 
     @Column(nullable = false)
-    private String role = "USER"; // 預設角色
+    private String role = "ROLE_USER"; // 預設角色
 
     // --- Getter & Setter ---
     public Long getId() {

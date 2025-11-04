@@ -18,6 +18,18 @@ public class Accommodation {
     @Column(name = "price_per_night", nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerNight = BigDecimal.valueOf(1000); // 預設1000元
 
+    @Column(length = 500)
+    private String amenities; // 例："WiFi, 停車場, 早餐"
+
+    public String getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(String amenities) {
+        this.amenities = amenities;
+    }
+
+
 
     public Accommodation() {}
 

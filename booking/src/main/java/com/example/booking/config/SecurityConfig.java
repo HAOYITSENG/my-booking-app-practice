@@ -28,17 +28,17 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/admin/**", "/api/bookings/admin/**").hasAuthority("ADMIN")
+                        .requestMatchers("/api/admin/**", "/api/bookings/admin/**").hasRole("ADMIN")
                         .requestMatchers("/h2-console/**", "/login", "/register", "/css/**", "/js/**", "/images/**","/api/auth/**").permitAll()
                         .requestMatchers("/api/accommodations/**").permitAll()
-                        .requestMatchers("/api/**").hasAuthority("USER")
+                        .requestMatchers("/api/**").hasRole("USER")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
                         .successHandler((request, response, authentication) -> {
                             boolean isAdmin = authentication.getAuthorities().stream()
-                                    .anyMatch(a -> a.getAuthority().equals("ADMIN"));
+                                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
                             response.sendRedirect(isAdmin ? "/admin-dashboard" : "/");
                         })
                         .failureUrl("/login?error=true")
