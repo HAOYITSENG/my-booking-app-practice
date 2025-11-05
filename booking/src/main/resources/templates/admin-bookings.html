@@ -9,10 +9,18 @@
 <div class="container mt-4">
     <h3>所有訂單</h3>
     <button class="btn btn-secondary mb-3" onclick="loadBookings()">重新載入</button>
-    <table class="table table-striped">
-        <thead>
+    <table class="table table-striped align-middle">
+        <thead class="table-dark">
         <tr>
-            <th>ID</th><th>使用者</th><th>住宿</th><th>入住</th><th>退房</th><th>總價</th><th></th>
+            <th>ID</th>
+            <th>使用者</th>
+            <th>住宿名稱</th>
+            <th>房型</th>
+            <th>入住</th>
+            <th>退房</th>
+            <th>間數</th>
+            <th>總價</th>
+            <th></th>
         </tr>
         </thead>
         <tbody id="bookings"></tbody>
@@ -21,25 +29,37 @@
 
 <script>
     async function loadBookings() {
-        const res = await fetch("/api/bookings/admin/all");
-        const data = await res.json();
-        const tbody = document.getElementById("bookings");
-        tbody.innerHTML = data.map(b => `
-        <tr>
-          <td>${b.id}</td>
-          <td>${b.user?.username || '-'}</td>
-          <td>${b.accommodation?.name || '-'}</td>
-          <td>${b.checkIn}</td>
-          <td>${b.checkOut}</td>
-          <td>${b.totalPrice || ''}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="deleteBooking(${b.id})">刪除</button></td>
-        </tr>
-    `).join('');
+        try {
+            const res = await fetch("/api/bookings/admin/all");
+            const data = await res.json();
+
+            const tbody = document.getElementById("bookings");
+            tbody.innerHTML = data.map(b => `
+                <tr>
+                    <td>${b.id}</td>
+                    <td>${b.user?.username || '-'}</td>
+                    <td>${b.roomType?.accommodation?.name || '-'}</td>
+                    <td>${b.roomType?.name || '-'}</td>
+                    <td>${b.checkIn}</td>
+                    <td>${b.checkOut}</td>
+                    <td>${b.bookedQuantity}</td>
+                    <td class="text-success fw-bold">
+                        ${b.totalPrice ? 'NT$ ' + Number(b.totalPrice).toLocaleString() : '-'}
+                    </td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBooking(${b.id})">刪除</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            console.error(err);
+            alert("載入訂單失敗");
+        }
     }
 
     async function deleteBooking(id) {
         if (!confirm("確定要刪除此訂單？")) return;
-        await fetch(`/api/bookings/admin/${id}`, {method: "DELETE"});
+        await fetch(`/api/bookings/admin/${id}`, { method: "DELETE" });
         loadBookings();
     }
 

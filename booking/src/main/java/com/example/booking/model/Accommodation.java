@@ -1,36 +1,35 @@
 package com.example.booking.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "accommodations")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // 避免 Lazy 加載報錯
 public class Accommodation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String name;
     private String location;
     private String description;
 
-    // 新增價格欄位
     @Column(name = "price_per_night", nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerNight = BigDecimal.valueOf(1000); // 預設1000元
 
     @Column(length = 500)
     private String amenities; // 例："WiFi, 停車場, 早餐"
 
-    public String getAmenities() {
-        return amenities;
-    }
+    // === 新增：與 RoomType 的一對多關聯 ===
+    @OneToMany(mappedBy = "accommodation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"accommodation", "bookings"}) // 防止雙向遞迴
+    private List<RoomType> roomTypes;
 
-    public void setAmenities(String amenities) {
-        this.amenities = amenities;
-    }
-
-
-
+    // === 建構子 ===
     public Accommodation() {}
 
     public Accommodation(Long id, String name, String location, String description, BigDecimal pricePerNight) {
@@ -41,42 +40,25 @@ public class Accommodation {
         this.pricePerNight = pricePerNight;
     }
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
+    // === Getter / Setter ===
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getName() {
-        return name;
-    }
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    // 新增價格的 getter/setter
     public BigDecimal getPricePerNight() { return pricePerNight; }
     public void setPricePerNight(BigDecimal pricePerNight) { this.pricePerNight = pricePerNight; }
 
+    public String getAmenities() { return amenities; }
+    public void setAmenities(String amenities) { this.amenities = amenities; }
 
+    public List<RoomType> getRoomTypes() { return roomTypes; }
+    public void setRoomTypes(List<RoomType> roomTypes) { this.roomTypes = roomTypes; }
 }

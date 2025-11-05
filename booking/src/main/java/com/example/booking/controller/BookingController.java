@@ -1,79 +1,65 @@
 package com.example.booking.controller;
 
-import java.time.LocalDate;
-import java.util.List;
-
 import com.example.booking.model.Booking;
-import com.example.booking.repository.BookingRepository;
 import com.example.booking.service.BookingService;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/bookings")
 public class BookingController {
 
-    private final BookingService bookingService;
-    private final BookingRepository bookingRepository;
+    @Autowired
+    private BookingService bookingService;
 
-    public BookingController(BookingService bookingService,
-                             BookingRepository bookingRepository) {
-        this.bookingService = bookingService;
-        this.bookingRepository = bookingRepository;
-    }
-
-    // --- 使用者功能 ---
-
-    /** 查詢目前登入者的所有訂房紀錄 */
-    @GetMapping
-    public List<Booking> myBookings(Authentication auth) {
-        return bookingService.getBookingsForUser(auth.getName());
-    }
-
-    /** 建立新訂單 */
+    // === 1. 舊版：以住宿 ID 下單 ===
     @PostMapping
-    public ResponseEntity<?> create(@RequestParam("accommodationId") long accommodationId,
-                                    @RequestParam("checkIn") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
-                                    @RequestParam("checkOut") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
-                                    Authentication auth) {
-
-        if (checkIn.isAfter(checkOut)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("入住日期不能晚於退房日期");
-        }
-
-        Booking booking = bookingService.book(accommodationId, checkIn, checkOut);
+    public ResponseEntity<Booking> bookByAccommodation(
+            @RequestParam Long accommodationId,
+            @RequestParam String checkIn,
+            @RequestParam String checkOut
+    ) {
+        LocalDate in = LocalDate.parse(checkIn);
+        LocalDate out = LocalDate.parse(checkOut);
+        Booking booking = bookingService.book(accommodationId, in, out);
         return ResponseEntity.ok(booking);
     }
 
-    // --- 管理員功能 ---
-
-    /** 查詢所有使用者的訂單 */
-    @GetMapping("/admin/all")
-    public ResponseEntity<?> getAllBookings(Authentication authentication) {
-
-        return ResponseEntity.ok(bookingRepository.findAll());
+    // === 2. 新版：以房型 ID 下單（支援數量與庫存檢查）===
+    @PostMapping("/by-room-type")
+    public ResponseEntity<Booking> bookByRoomType(
+            @RequestParam Long roomTypeId,
+            @RequestParam String checkIn,
+            @RequestParam String checkOut,
+            @RequestParam(defaultValue = "1") Integer quantity
+    ) {
+        LocalDate in = LocalDate.parse(checkIn);
+        LocalDate out = LocalDate.parse(checkOut);
+        Booking booking = bookingService.bookByRoomType(roomTypeId, in, out, quantity);
+        return ResponseEntity.ok(booking);
     }
 
-    /** 刪除指定訂單 */
-    @DeleteMapping("/admin/{id}")
-    public ResponseEntity<?> deleteBooking(@PathVariable Long id,
-                                           Authentication authentication) {
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ADMIN"));
-        if (!isAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("無權限");
-        }
+    // === 3. 使用者查自己的訂單（自動取登入帳號） ===
+    @GetMapping
+    public ResponseEntity<List<Booking>> getMyBookings(Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(bookingService.getBookingsForUser(username));
+    }
 
-        if (!bookingRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("找不到指定的訂單");
-        }
+    // === 4. 管理員查所有訂單 ===
+    @GetMapping("/admin/all")
+    public ResponseEntity<List<Booking>> getAllBookings() {
+        return ResponseEntity.ok(bookingService.getAllBookings());
+    }
 
-        bookingRepository.deleteById(id);
-        return ResponseEntity.ok("訂單已刪除");
+    // === 5.（選用）Admin 可查指定使用者的訂單 ===
+    @GetMapping("/user/{username}")
+    public ResponseEntity<List<Booking>> getBookingsForUser(@PathVariable String username) {
+        return ResponseEntity.ok(bookingService.getBookingsForUser(username));
     }
 }

@@ -1,149 +1,186 @@
 package com.example.booking.service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-
-import com.example.booking.model.Accommodation;
-import com.example.booking.model.Booking;
-import com.example.booking.model.User;
-import com.example.booking.repository.AccommodationRepository;
-import com.example.booking.repository.BookingRepository;
-import com.example.booking.repository.UserRepository;
-
+import com.example.booking.model.*;
+import com.example.booking.repository.*;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class BookingService {
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    @Autowired private AccommodationRepository accommodationRepo;
+    @Autowired private BookingRepository bookingRepo;
+    @Autowired private UserRepository userRepo;
+    @Autowired private RoomTypeRepository roomTypeRepo;
 
-
-    @Autowired
-    private AccommodationRepository accommodationRepo;
-
-    @Autowired
-    private BookingRepository bookingRepo;
-
-    @Autowired
-    private UserRepository userRepo;
-
-    // =============================
-    // 初始化資料（僅第一次執行）
-    // =============================
+    // === 初始化資料 ===
     @PostConstruct
     public void initData() {
-        long userCount = userRepo.count();
-        long accCount = accommodationRepo.count();
+        System.out.println("🔧 初始化資料檢查開始...");
 
-        if (userCount > 0 && accCount > 0) {
-            System.out.println("⚙️ 資料已存在，略過初始化");
-            return;
+        // 如果 admin 已存在就略過帳號與住宿建立
+        if (userRepo.findByUsername("admin").isPresent()) {
+            System.out.println("⚙️ 略過帳號與住宿初始化：已存在 admin 帳號");
+        } else {
+            // 建立帳號
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("admin123"));
+            admin.setRole("ADMIN");
+
+            User user = new User();
+            user.setUsername("user");
+            user.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("user123"));
+            user.setRole("USER");
+
+            userRepo.saveAll(List.of(admin, user));
+            System.out.println("✅ 已建立帳號：admin / user");
+
+            // 建立住宿
+            Accommodation acc1 = new Accommodation();
+            acc1.setName("日安旅館");
+            acc1.setDescription("溫馨雙人房，交通便利");
+            acc1.setLocation("台北市信義區");
+            acc1.setPricePerNight(new BigDecimal("1800"));
+
+            Accommodation acc2 = new Accommodation();
+            acc2.setName("海景飯店");
+            acc2.setDescription("面海房型附早餐");
+            acc2.setLocation("花蓮縣壽豐鄉");
+            acc2.setPricePerNight(new BigDecimal("3200"));
+
+            accommodationRepo.saveAll(List.of(acc1, acc2));
+            System.out.println("✅ 已建立住宿資料");
         }
 
-        System.out.println("🔊 開始初始化資料...");
-        bookingRepo.deleteAll();
+        // === 若房型資料為空，則初始化房型 ===
+        if (roomTypeRepo.count() == 0) {
+            List<Accommodation> accList = accommodationRepo.findAll();
+            List<RoomType> roomTypes = new ArrayList<>();
 
-        // === 初始化使用者 ===
-        if (userCount == 0) {
-            List<User> users = List.of(
-                    createUser("admin", "password", "ROLE_ADMIN"),
-                    createUser("user1", "123456", "ROLE_USER"),
-                    createUser("user2", "123456", "ROLE_USER"),
-                    createUser("test", "test", "ROLE_USER")
-            );
-            userRepo.saveAll(users);
-            System.out.println("✅ 新增使用者 " + users.size() + " 筆");
+            for (Accommodation acc : accList) {
+                RoomType rt1 = new RoomType();
+                rt1.setAccommodation(acc);
+                rt1.setName("標準雙人房");
+                rt1.setDescription(acc.getDescription() + "｜標準雙人房");
+                rt1.setPricePerNight(acc.getPricePerNight());
+                rt1.setTotalRooms(5);
+                roomTypes.add(rt1);
+
+                RoomType rt2 = new RoomType();
+                rt2.setAccommodation(acc);
+                rt2.setName("豪華房");
+                rt2.setDescription(acc.getDescription() + "｜豪華加大床");
+                rt2.setPricePerNight(acc.getPricePerNight().multiply(new BigDecimal("1.2")));
+                rt2.setTotalRooms(3);
+                roomTypes.add(rt2);
+            }
+
+            roomTypeRepo.saveAll(roomTypes);
+            System.out.println("✅ 已建立房型資料：" + roomTypes.size() + " 筆");
+        } else {
+            System.out.println("⚙️ 房型已存在，略過初始化");
         }
 
-        // === 初始化住宿 ===
-        if (accCount == 0) {
-            List<Accommodation> accs = List.of(
-                    createAccommodation("Spring Hotel", "台北", "車站附近", new BigDecimal("2500"), "WiFi, 早餐, 停車場"),
-                    createAccommodation("Sea Resort", "高雄", "海景第一排", new BigDecimal("3800"), "WiFi, 游泳池, 健身房"),
-                    createAccommodation("山城民宿", "南投", "森林環繞", new BigDecimal("1800"), "WiFi, 停車場"),
-                    createAccommodation("海景民宿", "花蓮", "面海第一排", new BigDecimal("2200"), "WiFi, 早餐, 海景陽台"),
-                    createAccommodation("城市旅店", "台中", "鄰近車站", new BigDecimal("1600"), "WiFi, 早餐")
-            );
-            accommodationRepo.saveAll(accs);
-            System.out.println("✅ 新增住宿 " + accs.size() + " 筆");
+        System.out.println("🎉 初始化程序完成");
+    }
+
+    // === 以住宿 ID 下單（相容舊版）===
+    public Booking book(long accommodationId, LocalDate checkIn, LocalDate checkOut) {
+        List<RoomType> rts = roomTypeRepo.findByAccommodationId(accommodationId);
+        if (rts.isEmpty()) {
+            throw new RuntimeException("此住宿尚無可訂房型");
+        }
+        RoomType first = rts.get(0);
+        return bookByRoomType(first.getId(), checkIn, checkOut, 1);
+    }
+
+    // === 以房型 ID 下單（正式邏輯）===
+    public Booking bookByRoomType(long roomTypeId, LocalDate checkIn, LocalDate checkOut, int quantity) {
+        if (checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
+            throw new RuntimeException("日期區間不合法");
+        }
+        if (quantity <= 0) {
+            throw new RuntimeException("預訂數量需大於 0");
         }
 
-        System.out.println("🎉 初始化完成！");
-        System.out.println("📝 測試帳號：");
-        System.out.println("   - admin / password");
-        System.out.println("   - user1 / 123456");
-        System.out.println("   - user2 / 123456");
-        System.out.println("   - test / test");
+        String username = getLoggedInUsername();
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("找不到用戶：" + username));
+
+        RoomType rt = roomTypeRepo.findById(roomTypeId)
+                .orElseThrow(() -> new RuntimeException("找不到房型 ID=" + roomTypeId));
+
+        Long alreadyBooked = bookingRepo.sumBookedQuantityBetween(roomTypeId, checkIn, checkOut);
+        int totalRooms = rt.getTotalRooms();
+        long willBe = alreadyBooked + quantity;
+
+        if (willBe > totalRooms) {
+            throw new RuntimeException("庫存不足，該日期區間剩餘：" + Math.max(totalRooms - alreadyBooked, 0));
+        }
+
+        long days = ChronoUnit.DAYS.between(checkIn, checkOut);
+        if (days <= 0) {
+            throw new RuntimeException("入住/退房日期至少需 1 晚");
+        }
+
+        BigDecimal totalPrice = rt.getPricePerNight()
+                .multiply(BigDecimal.valueOf(days))
+                .multiply(BigDecimal.valueOf(quantity));
+
+        Booking booking = new Booking(null, checkIn, checkOut, rt, user, quantity, totalPrice);
+        Booking saved = bookingRepo.save(booking);
+        System.out.println("✅ 新訂單建立成功：" + saved.getId());
+        return saved;
     }
 
-    private User createUser(String username, String password, String role) {
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setRole(role);
-        return user;
+    // === 取得登入使用者 ===
+    private String getLoggedInUsername() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UserDetails ud) return ud.getUsername();
+        return principal.toString();
     }
 
-    private Accommodation createAccommodation(String name, String location, String description,
-                                              BigDecimal price, String amenities) {
-        Accommodation a = new Accommodation();
-        a.setName(name);
-        a.setLocation(location);
-        a.setDescription(description);
-        a.setPricePerNight(price);
-        a.setAmenities(amenities);
-        return a;
-    }
-
-    // =============================
-    // 業務邏輯
-    // =============================
-
+    // === 查詢 ===
     public List<Accommodation> getAllAccommodations() {
         return accommodationRepo.findAll();
+    }
+
+    public List<Accommodation> searchByLocation(String location) {
+        if (location == null || location.isBlank()) {
+            return accommodationRepo.findAll();
+        }
+        return accommodationRepo.findByLocationContainingIgnoreCase(location);
     }
 
     public List<Booking> getBookingsForUser(String username) {
         return bookingRepo.findByUserUsername(username);
     }
 
-    public Booking book(long accommodationId, LocalDate checkIn, LocalDate checkOut) {
-        String username = getLoggedInUsername();
-        User user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("找不到用戶：" + username));
-        Accommodation acc = accommodationRepo.findById(accommodationId)
-                .orElseThrow(() -> new RuntimeException("找不到住宿 ID=" + accommodationId));
+    public List<Booking> getAllBookings() {
+        List<Booking> bookings = bookingRepo.findAll();
 
-        // === 日期衝突檢查 ===
-        List<Booking> conflicts = bookingRepo.findConflictingBookings(accommodationId, checkIn, checkOut);
-        if (!conflicts.isEmpty()) {
-            throw new RuntimeException("此住宿在指定日期已被預訂");
+        // 觸發 Lazy 載入，確保 JSON 有住宿名稱
+        for (Booking b : bookings) {
+            if (b.getRoomType() != null && b.getRoomType().getAccommodation() != null) {
+                b.getRoomType().getAccommodation().getName(); // Hibernate 初始化
+            }
         }
 
-        Booking booking = new Booking(null, checkIn, checkOut, acc, user);
-        return bookingRepo.save(booking);
+        return bookings;
     }
 
-    private String getLoggedInUsername() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof UserDetails userDetails) {
-            return userDetails.getUsername();
-        }
-        return principal.toString();
-    }
-
-    public List<Accommodation> searchByLocation(String location) {
-        return accommodationRepo.findByLocationContainingIgnoreCase(location);
-    }
 
     public List<Accommodation> getAvailableAccommodations(LocalDate checkIn, LocalDate checkOut) {
-        return accommodationRepo.findAvailableAccommodations(checkIn, checkOut);
+        return accommodationRepo.findAll();
     }
 }

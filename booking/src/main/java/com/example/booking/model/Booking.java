@@ -1,11 +1,9 @@
 package com.example.booking.model;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "bookings")
@@ -21,84 +19,56 @@ public class Booking {
     @Column(name = "check_out", nullable = false)
     private LocalDate checkOut;
 
-    // 加入 @JsonIgnoreProperties 忽略 Hibernate 代理物件屬性
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "accommodation_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private Accommodation accommodation;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private User user;
-
-
-    // 新增總價欄位
-    @Column(precision = 10, scale = 2)
+    @Column(name = "total_price", precision = 12, scale = 2)
     private BigDecimal totalPrice;
 
-    // 預設建構子（JPA 需要）
+    @Column(name = "booked_quantity", nullable = false)
+    private Integer bookedQuantity = 1;
+
+    // === 關聯：房型 ===
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_type_id")
+    @JsonIgnoreProperties({"bookings"}) // 不再忽略 accommodation，允許回傳住宿資料
+    private RoomType roomType;
+
+    // === 關聯：使用者 ===
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @JsonIgnoreProperties({"password"}) // 不暴露密碼
+    private User user;
+
     public Booking() {}
 
-    public Booking(Long id, LocalDate checkIn, LocalDate checkOut, Accommodation accommodation, User user) {
+    public Booking(Long id, LocalDate checkIn, LocalDate checkOut,
+                   RoomType roomType, User user, Integer bookedQuantity, BigDecimal totalPrice) {
         this.id = id;
         this.checkIn = checkIn;
         this.checkOut = checkOut;
-        this.accommodation = accommodation;
+        this.roomType = roomType;
         this.user = user;
-        this.calculateTotalPrice(); // 自動計算總價
+        this.bookedQuantity = bookedQuantity;
+        this.totalPrice = totalPrice;
     }
 
-    // 計算總價的方法
-    public void calculateTotalPrice() {
-        if (accommodation != null && checkIn != null && checkOut != null) {
-            long nights = ChronoUnit.DAYS.between(checkIn, checkOut);
-            this.totalPrice = accommodation.getPricePerNight().multiply(BigDecimal.valueOf(nights));
-        }
-    }
+    // === Getters / Setters ===
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
+    public LocalDate getCheckIn() { return checkIn; }
+    public void setCheckIn(LocalDate checkIn) { this.checkIn = checkIn; }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public LocalDate getCheckIn() {
-        return checkIn;
-    }
-
-    public void setCheckIn(LocalDate checkIn) {
-        this.checkIn = checkIn;
-        calculateTotalPrice();
-    }
-
-    public LocalDate getCheckOut() {
-        return checkOut;
-    }
-
-    public void setCheckOut(LocalDate checkOut) {
-        this.checkOut = checkOut;
-        calculateTotalPrice();
-    }
-
-    public Accommodation getAccommodation() { return accommodation; }
-    public void setAccommodation(Accommodation accommodation) {
-        this.accommodation = accommodation;
-        calculateTotalPrice();
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
+    public LocalDate getCheckOut() { return checkOut; }
+    public void setCheckOut(LocalDate checkOut) { this.checkOut = checkOut; }
 
     public BigDecimal getTotalPrice() { return totalPrice; }
-
     public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
+
+    public Integer getBookedQuantity() { return bookedQuantity; }
+    public void setBookedQuantity(Integer bookedQuantity) { this.bookedQuantity = bookedQuantity; }
+
+    public RoomType getRoomType() { return roomType; }
+    public void setRoomType(RoomType roomType) { this.roomType = roomType; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 }
