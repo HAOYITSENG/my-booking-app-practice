@@ -46,9 +46,15 @@ public class BookingController {
 
     // === 3. 使用者查自己的訂單（自動取登入帳號） ===
     @GetMapping
-    public ResponseEntity<List<Booking>> getMyBookings(Authentication authentication) {
+    public ResponseEntity<List<Booking>> getBookings(Authentication authentication) {
         String username = authentication.getName();
-        return ResponseEntity.ok(bookingService.getBookingsForUser(username));
+        // 根據用戶角色返回不同的訂單列表
+        if (authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_OWNER"))) {
+            return ResponseEntity.ok(bookingService.getBookingsForOwner(username));
+        } else {
+            return ResponseEntity.ok(bookingService.getBookingsForUser(username));
+        }
     }
 
     // === 4. 管理員查所有訂單 ===

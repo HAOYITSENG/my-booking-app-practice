@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-TW">
+<head>
+    <title>房型管理 - 訂房系統</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .room-type-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .room-type-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .room-type-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        header {
+            background: #007bff;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        header nav {
+            margin-top: 1rem;
+        }
+        header nav a {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        .actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>房型管理</h1>
+        <nav>
+            <a href="/owner-dashboard">返回儀表板</a>
+            <a href="/owner-accommodations">管理住宿</a>
+            <a href="/owner-bookings">管理訂單</a>
+            <form action="/logout" method="POST" style="display: inline;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <button type="submit" class="logout-btn" style="background: none; border: none; color: white; cursor: pointer; padding: 0.5rem 1rem;">登出</button>
+            </form>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="room-type-form">
+            <h2>新增房型</h2>
+            <form id="newRoomTypeForm">
+                <div class="form-group">
+                    <label for="name">房型名稱</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">描述</label>
+                    <textarea id="description" name="description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="pricePerNight">每晚價格</label>
+                    <input type="number" id="pricePerNight" name="pricePerNight" required min="0">
+                </div>
+                <div class="form-group">
+                    <label for="totalRooms">房間數量</label>
+                    <input type="number" id="totalRooms" name="totalRooms" required min="1">
+                </div>
+                <button type="submit" class="btn btn-primary">新增房型</button>
+            </form>
+        </section>
+
+        <section class="room-type-list">
+            <!-- 這裡將由JavaScript動態載入房型列表 -->
+        </section>
+    </main>
+
+    <script>
+        // 從URL中獲取住宿ID
+        const accommodationId = new URLSearchParams(window.location.search).get('id');
+        if (!accommodationId) {
+            alert('未指定住宿ID！');
+            window.location.href = '/owner-accommodations';
+        }
+
+        // 載入房型列表
+        async function loadRoomTypes() {
+            try {
+                const response = await fetch(`/api/owner/accommodations/${accommodationId}/room-types`);
+                if (!response.ok) throw new Error('載入失敗');
+                const roomTypes = await response.json();
+
+                const listSection = document.querySelector('.room-type-list');
+                listSection.innerHTML = roomTypes.map(rt => `
+                    <div class="room-type-card">
+                        <h3>${rt.name}</h3>
+                        <p>描述：${rt.description}</p>
+                        <p>價格：NT$${rt.pricePerNight} /晚</p>
+                        <p>房間數：${rt.totalRooms}</p>
+                        <div class="actions">
+                            <button class="btn btn-secondary" onclick="editRoomType(${rt.id})">編輯</button>
+                            <button class="btn btn-danger" onclick="deleteRoomType(${rt.id})">刪除</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                alert('載入房型資料失敗：' + error.message);
+            }
+        }
+
+        // 新增房型
+        document.getElementById('newRoomTypeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const formData = {
+                    name: document.getElementById('name').value,
+                    description: document.getElementById('description').value,
+                    pricePerNight: Number(document.getElementById('pricePerNight').value),
+                    totalRooms: Number(document.getElementById('totalRooms').value)
+                };
+
+                const response = await fetch(`/api/owner/accommodations/${accommodationId}/room-types`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) throw new Error('新增失敗');
+
+                alert('新增成功！');
+                e.target.reset();
+                loadRoomTypes();
+            } catch (error) {
+                alert('新增失敗：' + error.message);
+            }
+        });
+
+        // 刪除房型
+        async function deleteRoomType(id) {
+            if (!confirm('確定要刪除此房型嗎？')) return;
+
+            try {
+                const response = await fetch(`/api/owner/room-types/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error('刪除失敗');
+
+                alert('刪除成功！');
+                loadRoomTypes();
+            } catch (error) {
+                alert('刪除失敗：' + error.message);
+            }
+        }
+
+        // 編輯房型
+        function editRoomType(id) {
+            alert('編輯功能開發中...');
+        }
+
+        // 頁面載入時載入房型列表
+        document.addEventListener('DOMContentLoaded', loadRoomTypes);
+    </script>
+</body>
+</html>

@@ -30,24 +30,41 @@ public class UserController {
     public ResponseEntity<?> register(@RequestParam String username,
                                       @RequestParam String password) {
 
+        // 基本验证
         if (username == null || username.isBlank() ||
                 password == null || password.isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("帳號與密碼不得為空");
         }
 
-        if (userRepository.findByUsername(username).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("使用者已存在");
+        // 长度验证
+        if (username.length() < 3 || username.length() > 20) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("帳號長度需要在3到20個字元之間");
+        }
+        if (password.length() < 6) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("密碼至少需要6個字元");
         }
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password)); // 加密
-        user.setRole("USER");
+        // 检查用户名是否已存在
+        if (userRepository.findByUsername(username).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("此帳號已被使用");
+        }
 
-        userRepository.save(user);
-        return ResponseEntity.ok("註冊成功");
+        try {
+            User user = new User();
+            user.setUsername(username);
+            user.setPassword(passwordEncoder.encode(password)); // 加密
+            user.setRole("ROLE_USER"); // 确保角色前缀正确
+
+            userRepository.save(user);
+            return ResponseEntity.ok("註冊成功");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("註冊失敗：系統錯誤");
+        }
     }
 
     /**

@@ -31,4 +31,7 @@ public interface AccommodationRepository extends JpaRepository<Accommodation, Lo
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut
     );
+
+    // 查詢指定用戶名擁有的所有住宿
+    List<Accommodation> findByOwnerUsername(String username);
 }

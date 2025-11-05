@@ -35,28 +35,36 @@ public class BookingService {
             User admin = new User();
             admin.setUsername("admin");
             admin.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("admin123"));
-            admin.setRole("ADMIN");
+            admin.setRole("ROLE_ADMIN");
 
             User user = new User();
             user.setUsername("user");
             user.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("user123"));
-            user.setRole("USER");
+            user.setRole("ROLE_USER"); // 修正：原本錯誤地設置給了admin
 
-            userRepo.saveAll(List.of(admin, user));
-            System.out.println("✅ 已建立帳號：admin / user");
+            // 建立房東帳號
+            User owner = new User();
+            owner.setUsername("owner");
+            owner.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("owner123"));
+            owner.setRole("ROLE_OWNER");
+
+            userRepo.saveAll(List.of(admin, user, owner));
+            System.out.println("✅ 已建立帳號：admin / user / owner");
 
             // 建立住宿
             Accommodation acc1 = new Accommodation();
             acc1.setName("日安旅館");
             acc1.setDescription("溫馨雙人房，交通便利");
-            acc1.setLocation("台北市信義區");
-            acc1.setPricePerNight(new BigDecimal("1800"));
+            acc1.setLocation("台北市中山區");
+            acc1.setPricePerNight(BigDecimal.valueOf(2000));
+            acc1.setOwner(owner); // 設定擁有者
 
             Accommodation acc2 = new Accommodation();
-            acc2.setName("海景飯店");
-            acc2.setDescription("面海房型附早餐");
-            acc2.setLocation("花蓮縣壽豐鄉");
-            acc2.setPricePerNight(new BigDecimal("3200"));
+            acc2.setName("海景villa");
+            acc2.setDescription("豪華海景房，適合度假");
+            acc2.setLocation("墾丁大街上");
+            acc2.setPricePerNight(BigDecimal.valueOf(5000));
+            acc2.setOwner(owner); // 設定擁有者
 
             accommodationRepo.saveAll(List.of(acc1, acc2));
             System.out.println("✅ 已建立住宿資料");
@@ -138,6 +146,7 @@ public class BookingService {
                 .multiply(BigDecimal.valueOf(quantity));
 
         Booking booking = new Booking(null, checkIn, checkOut, rt, user, quantity, totalPrice);
+        booking.setStatus("PENDING"); // 設置初始狀態為待確認
         Booking saved = bookingRepo.save(booking);
         System.out.println("✅ 新訂單建立成功：" + saved.getId());
         return saved;
@@ -219,6 +228,168 @@ public class BookingService {
         }
 
         booking.setStatus("CANCELLED");
+        return bookingRepo.save(booking);
+    }
+
+    // === 房東專用方法 ===
+
+    // 取得房東的住宿清單
+    public List<Accommodation> getAccommodationsForOwner(String username) {
+        return accommodationRepo.findByOwnerUsername(username);
+    }
+
+    // 新增住宿
+    public Accommodation createAccommodation(Accommodation newAccommodation, String username) {
+        User owner = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("找不到用戶：" + username));
+
+        newAccommodation.setOwner(owner);
+        return accommodationRepo.save(newAccommodation);
+    }
+
+    // 更新住宿
+    public Accommodation updateAccommodation(Long id, Accommodation updatedAccommodation, String username) {
+        Accommodation existing = accommodationRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("找不到住宿 ID=" + id));
+
+        // 所有權檢查
+        if (!existing.getOwner().getUsername().equals(username)) {
+            throw new RuntimeException("無權限修改此住宿");
+        }
+
+        // 只更新允許的欄位
+        existing.setName(updatedAccommodation.getName());
+        existing.setLocation(updatedAccommodation.getLocation());
+        existing.setDescription(updatedAccommodation.getDescription());
+        existing.setPricePerNight(updatedAccommodation.getPricePerNight());
+        existing.setAmenities(updatedAccommodation.getAmenities());
+
+        return accommodationRepo.save(existing);
+    }
+
+    // 刪除住宿
+    public void deleteAccommodation(Long id, String username) {
+        Accommodation existing = accommodationRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("找不到住宿 ID=" + id));
+
+        // 所有權檢查
+        if (!existing.getOwner().getUsername().equals(username)) {
+            throw new RuntimeException("無權限刪除此住宿");
+        }
+
+        accommodationRepo.deleteById(id);
+    }
+
+    // 獲取房型列表
+    public List<RoomType> getRoomTypesForAccommodation(Long accId) {
+        return roomTypeRepo.findByAccommodationId(accId);
+    }
+
+    // 檢查住宿所有權（輔助方法）
+    public void checkAccommodationOwnership(Long accId, String username) {
+        Accommodation acc = accommodationRepo.findById(accId)
+                .orElseThrow(() -> new RuntimeException("找不到住宿 ID=" + accId));
+
+        if (!acc.getOwner().getUsername().equals(username)) {
+            throw new RuntimeException("無權限操作此住宿");
+        }
+    }
+
+    // 新增房型
+    public RoomType createRoomType(Long accId, RoomType newRoomType, String username) {
+        // 檢查住宿所有權
+        checkAccommodationOwnership(accId, username);
+
+        Accommodation acc = accommodationRepo.findById(accId)
+                .orElseThrow(() -> new RuntimeException("找不到住宿 ID=" + accId));
+
+        newRoomType.setAccommodation(acc);
+        return roomTypeRepo.save(newRoomType);
+    }
+
+    // 刪除房型
+    public void deleteRoomType(Long roomTypeId, String username) {
+        RoomType roomType = roomTypeRepo.findById(roomTypeId)
+                .orElseThrow(() -> new RuntimeException("找不到房型 ID=" + roomTypeId));
+
+        // 所有權檢查
+        if (!roomType.getAccommodation().getOwner().getUsername().equals(username)) {
+            throw new RuntimeException("無權限刪除此房型");
+        }
+
+        roomTypeRepo.deleteById(roomTypeId);
+    }
+
+    // === 房東查看自己住宿的訂單 ===
+    public List<Booking> getBookingsForOwner(String username) {
+        List<Accommodation> ownerAccommodations = accommodationRepo.findByOwnerUsername(username);
+        return bookingRepo.findAll().stream()
+                .filter(booking ->
+                    ownerAccommodations.contains(booking.getRoomType().getAccommodation()))
+                .peek(booking -> {
+                    // 確保懶加載的關聯被初始化
+                    if (booking.getRoomType() != null && booking.getRoomType().getAccommodation() != null) {
+                        booking.getRoomType().getAccommodation().getName();
+                    }
+                })
+                .toList();
+    }
+
+    // === 房東確認訂單 ===
+    public Booking confirmBookingByOwner(Long bookingId, String ownerUsername) {
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("找不到訂單 ID=" + bookingId));
+
+        // 檢查是否為該房東的住宿
+        if (!booking.getRoomType().getAccommodation().getOwner().getUsername().equals(ownerUsername)) {
+            throw new RuntimeException("無權限確認此訂單");
+        }
+
+        // 檢查訂單狀態
+        if ("CONFIRMED".equals(booking.getStatus())) {
+            throw new RuntimeException("訂單已經確認過了");
+        }
+        if ("CANCELLED".equals(booking.getStatus())) {
+            throw new RuntimeException("已取消的訂單無法確認");
+        }
+
+        booking.setStatus("CONFIRMED");
+        return bookingRepo.save(booking);
+    }
+
+    // === 房東取消訂單 ===
+    public Booking cancelBookingByOwner(Long bookingId, String ownerUsername) {
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("找不到訂單 ID=" + bookingId));
+
+        // 檢查是否為該房東的住宿
+        if (!booking.getRoomType().getAccommodation().getOwner().getUsername().equals(ownerUsername)) {
+            throw new RuntimeException("無權限取消此訂單");
+        }
+
+        // 檢查訂單狀態
+        if ("CANCELLED".equals(booking.getStatus())) {
+            throw new RuntimeException("訂單已經取消過了");
+        }
+
+        booking.setStatus("CANCELLED");
+        return bookingRepo.save(booking);
+    }
+
+    // === 管理員確認訂單 ===
+    public Booking confirmBookingByAdmin(Long bookingId) {
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("找不到訂單 ID=" + bookingId));
+
+        // 檢查訂單狀態
+        if ("CONFIRMED".equals(booking.getStatus())) {
+            throw new RuntimeException("訂單已經確認過了");
+        }
+        if ("CANCELLED".equals(booking.getStatus())) {
+            throw new RuntimeException("已取消的訂單無法確認");
+        }
+
+        booking.setStatus("CONFIRMED");
         return bookingRepo.save(booking);
     }
 }

@@ -29,6 +29,12 @@ public class Accommodation {
     @JsonIgnoreProperties({"accommodation", "bookings"}) // 防止雙向遞迴
     private List<RoomType> roomTypes;
 
+    // === 新增：與 User 的多對一關聯 ===
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "roles"})
+    private User owner;
+
     // === 建構子 ===
     public Accommodation() {}
 
@@ -61,4 +67,7 @@ public class Accommodation {
 
     public List<RoomType> getRoomTypes() { return roomTypes; }
     public void setRoomTypes(List<RoomType> roomTypes) { this.roomTypes = roomTypes; }
+
+    public User getOwner() { return owner; }
+    public void setOwner(User owner) { this.owner = owner; }
 }

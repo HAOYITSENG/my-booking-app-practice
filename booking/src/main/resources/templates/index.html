@@ -10,7 +10,6 @@
     <style>
         .accommodation-card { transition: transform .2s; }
         .accommodation-card:hover { transform: translateY(-5px); }
-        .booking-section { background:#f8f9fa; border-radius:10px; padding:20px; margin-top:20px; }
     </style>
 </head>
 <body>
@@ -18,6 +17,7 @@
     <div class="container">
         <a class="navbar-brand" href="#">訂房系統</a>
         <div class="navbar-nav ms-auto">
+            <a href="/user-bookings" class="btn btn-outline-light btn-sm me-2">我的訂單</a>
             <form th:action="@{/logout}" method="post" style="display:inline;">
                 <button type="submit" class="btn btn-outline-light btn-sm">登出</button>
             </form>
@@ -65,13 +65,6 @@
             <h3>住宿列表</h3>
             <div id="accommodations" class="row"></div>
         </div>
-    </div>
-
-    <!-- 我的訂房記錄 -->
-    <div class="booking-section mt-4">
-        <h3>我的訂房記錄</h3>
-        <button class="btn btn-info mb-3" onclick="loadMyBookings()">重新載入訂房記錄</button>
-        <div id="myBookings"></div>
     </div>
 </div>
 
@@ -131,7 +124,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         bookingModal = new bootstrap.Modal(document.getElementById('bookingModal'));
         loadAllAccommodations();
-        loadMyBookings();
     });
 
     function loadAllAccommodations() {
@@ -286,17 +278,9 @@
             })
             .then(() => {
                 bookingModal.hide();
-                showAlert('訂房成功', 'success');
-                loadMyBookings();
+                showAlert('訂房成功，可至「我的訂單」查看訂房紀錄', 'success');
             })
             .catch(e => showAlert(e.message, 'danger'));
-    }
-
-    function loadMyBookings() {
-        fetch('/api/bookings')
-            .then(r => r.json())
-            .then(displayMyBookings)
-            .catch(() => showAlert('載入訂房記錄失敗', 'danger'));
     }
 
     // 獲取 CSRF token
@@ -311,104 +295,6 @@
         }
         return headers;
     };
-
-    function displayMyBookings(bookings) {
-        const c = document.getElementById('myBookings');
-        if (!bookings || bookings.length === 0) {
-            c.innerHTML = '<div class="alert alert-info">您還沒有任何訂房記錄</div>';
-            return;
-        }
-
-        c.innerHTML = `
-      <div class="table-responsive">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>訂房編號</th>
-              <th>住宿名稱</th>
-              <th>房型</th>
-              <th>地點</th>
-              <th>入住日期</th>
-              <th>退房日期</th>
-              <th>晚數</th>
-              <th>數量</th>
-              <th>總費用</th>
-              <th>狀態</th>
-              <th>動作</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${bookings.map(b => {
-            const acc = b.roomType?.accommodation || {};
-            const rt = b.roomType || {};
-            const nights = calculateDays(b.checkIn, b.checkOut);
-            const total = Number(b.totalPrice || 0).toLocaleString();
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const checkInDate = new Date(b.checkIn);
-            const isFuture = checkInDate > today;
-
-            // 設置狀態的 badge 樣式
-            let statusBadgeClass = 'bg-success';
-            if (b.status === 'CANCELLED') {
-                statusBadgeClass = 'bg-danger';
-            } else if (!isFuture) {
-                statusBadgeClass = 'bg-secondary';
-            }
-
-            return `
-                <tr>
-                  <td>${b.id}</td>
-                  <td>${escapeHtml(acc.name || '')}</td>
-                  <td>${escapeHtml(rt.name || '')}</td>
-                  <td>${escapeHtml(acc.location || '')}</td>
-                  <td>${b.checkIn}</td>
-                  <td>${b.checkOut}</td>
-                  <td>${nights}</td>
-                  <td>${b.bookedQuantity || 1}</td>
-                  <td class="text-success fw-bold">NT$ ${total}</td>
-                  <td>
-                    <span class="badge ${statusBadgeClass}">
-                        ${b.status === 'CANCELLED' ? '已取消' :
-                          (!isFuture ? '已生效' : '已預訂')}
-                    </span>
-                  </td>
-                  <td>
-                    ${(b.status !== 'CANCELLED' && isFuture) ?
-                        `<button class="btn btn-danger btn-sm" onclick="cancelBooking(${b.id})">取消訂單</button>`
-                        : ''}
-                  </td>
-                </tr>
-              `;
-        }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-    }
-
-    async function cancelBooking(id) {
-        if (!confirm('確定要取消此訂單？')) return;
-
-        try {
-            const res = await fetch(`/api/bookings/${id}`, {
-                method: 'DELETE',
-                headers: getHeaders(),
-                credentials: 'same-origin'
-            });
-
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || '取消失敗');
-            }
-
-            showAlert('訂單已取消', 'success');
-            await loadMyBookings();
-        } catch (err) {
-            console.error(err);
-            showAlert(err.message || '取消訂單失敗', 'danger');
-        }
-    }
 
     function calculateDays(checkIn, checkOut) {
         const s = new Date(checkIn);

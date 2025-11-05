@@ -38,5 +38,33 @@ public class HomeController {
     @GetMapping("/register") public String registerPage() { return "register"; }
     @GetMapping("/admin-bookings") public String adminBookingsPage() { return "admin-bookings"; }
     @GetMapping("/admin-accommodations") public String adminAccommodationsPage() { return "admin-accommodations"; }
+    @GetMapping("/owner-dashboard")
+    public String ownerDashboard() {
+        return "owner-dashboard";
+    }
 
+    @GetMapping("/owner-accommodations")
+    public String ownerAccommodations() {
+        return "owner-accommodations";
+    }
+
+    @GetMapping("/owner-bookings")
+    public String ownerBookings() {
+        return "owner-bookings";
+    }
+
+    @GetMapping("/room-type-management")
+    public String roomTypeManagement() {
+        return "room-type-management";
+    }
+
+    @GetMapping("/admin-users")
+    public String adminUsersPage() {
+        return "admin-users";
+    }
+
+    @GetMapping("/user-bookings")
+    public String userBookings() {
+        return "user-bookings";
+    }
 }

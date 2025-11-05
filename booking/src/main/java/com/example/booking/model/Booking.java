@@ -26,7 +26,7 @@ public class Booking {
     private Integer bookedQuantity = 1;
 
     @Column(name = "status", nullable = false)
-    private String status = "BOOKED";
+    private String status = "PENDING";
 
     // === 關聯：房型 ===
     @ManyToOne(optional = false, fetch = FetchType.LAZY)

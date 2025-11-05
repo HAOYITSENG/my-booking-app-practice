@@ -14,16 +14,21 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Autowired
     private UserRepository userRepo;
 
-
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("找不到使用者：" + username));
+
+        String role = user.getRole();
+        // 如果角色沒有 ROLE_ 前綴，則添加
+        if (!role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                List.of(new SimpleGrantedAuthority(user.getRole()))
+                List.of(new SimpleGrantedAuthority(role))
         );
     }
-
 }

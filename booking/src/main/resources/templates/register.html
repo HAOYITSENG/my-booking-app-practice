@@ -13,13 +13,18 @@
             <form id="registerForm">
                 <div class="mb-3">
                     <label class="form-label">帳號</label>
-                    <input type="text" id="username" class="form-control" required>
+                    <input type="text" id="username" class="form-control" required
+                           pattern=".{3,20}" title="帳號長度需要在3到20個字元之間">
+                    <div class="form-text">帳號長度需要在3到20個字元之間</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">密碼</label>
-                    <input type="password" id="password" class="form-control" required>
+                    <input type="password" id="password" class="form-control" required
+                           pattern=".{6,}" title="密碼至少需要6個字元">
+                    <div class="form-text">密碼至少需要6個字元</div>
                 </div>
                 <button type="submit" class="btn btn-primary w-100">註冊</button>
+                <a href="/login" class="btn btn-link w-100 mt-2">返回登入</a>
             </form>
             <div id="msg" class="mt-3 text-center"></div>
         </div>
@@ -32,20 +37,48 @@
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
 
+        // 表單驗證
+        if (username.length < 3 || username.length > 20) {
+            showMessage("帳號長度需要在3到20個字元之間", false);
+            return;
+        }
+        if (password.length < 6) {
+            showMessage("密碼至少需要6個字元", false);
+            return;
+        }
+
         const formData = new URLSearchParams();
         formData.append("username", username);
         formData.append("password", password);
 
-        const res = await fetch("/api/auth/register", {
-            method: "POST",
-            headers: {"Content-Type": "application/x-www-form-urlencoded"},
-            body: formData
-        });
+        try {
+            const res = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                body: formData
+            });
 
-        const msgDiv = document.getElementById("msg");
-        msgDiv.textContent = res.ok ? "註冊成功，請返回登入頁登入" : "註冊失敗";
-        msgDiv.className = res.ok ? "text-success" : "text-danger";
+            if (res.ok) {
+                showMessage("註冊成功！3秒後自動跳轉到登入頁面...", true);
+                setTimeout(() => window.location.href = "/login", 3000);
+            } else {
+                const errorData = await res.text();
+                if (res.status === 409) {
+                    showMessage("註冊失敗：此帳號已被使用", false);
+                } else {
+                    showMessage("註冊失敗：" + errorData, false);
+                }
+            }
+        } catch (error) {
+            showMessage("註冊失敗：系統錯誤，請稍後再試", false);
+        }
     });
+
+    function showMessage(message, isSuccess) {
+        const msgDiv = document.getElementById("msg");
+        msgDiv.textContent = message;
+        msgDiv.className = `alert ${isSuccess ? 'alert-success' : 'alert-danger'} mt-3`;
+    }
 </script>
 </body>
 </html>
