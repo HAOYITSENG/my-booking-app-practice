@@ -183,4 +183,42 @@ public class BookingService {
     public List<Accommodation> getAvailableAccommodations(LocalDate checkIn, LocalDate checkOut) {
         return accommodationRepo.findAll();
     }
+
+    // === 一般用戶取消訂單（需為訂單所有者） ===
+    public Booking cancelBooking(Long bookingId, String username) {
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("找不到訂單 ID=" + bookingId));
+
+        // 檢查是否為訂單所有者
+        if (!booking.getUser().getUsername().equals(username)) {
+            throw new RuntimeException("沒有權限取消此訂單");
+        }
+
+        // 檢查訂單狀態
+        if ("CANCELLED".equals(booking.getStatus())) {
+            throw new RuntimeException("訂單已取消");
+        }
+
+        // 檢查日期（不能取消已經開始的住宿）
+        LocalDate today = LocalDate.now();
+        if (!today.isBefore(booking.getCheckIn())) {
+            throw new RuntimeException("已開始入住或入住當日，無法取消");
+        }
+
+        booking.setStatus("CANCELLED");
+        return bookingRepo.save(booking);
+    }
+
+    // === 管理員取消訂單（可取消任意訂單） ===
+    public Booking cancelBookingByAdmin(Long bookingId) {
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("找不到訂單 ID=" + bookingId));
+
+        if ("CANCELLED".equals(booking.getStatus())) {
+            throw new RuntimeException("訂單已取消");
+        }
+
+        booking.setStatus("CANCELLED");
+        return bookingRepo.save(booking);
+    }
 }

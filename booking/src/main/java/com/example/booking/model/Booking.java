@@ -25,6 +25,9 @@ public class Booking {
     @Column(name = "booked_quantity", nullable = false)
     private Integer bookedQuantity = 1;
 
+    @Column(name = "status", nullable = false)
+    private String status = "BOOKED";
+
     // === 關聯：房型 ===
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "room_type_id")
@@ -65,6 +68,9 @@ public class Booking {
 
     public Integer getBookedQuantity() { return bookedQuantity; }
     public void setBookedQuantity(Integer bookedQuantity) { this.bookedQuantity = bookedQuantity; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public RoomType getRoomType() { return roomType; }
     public void setRoomType(RoomType roomType) { this.roomType = roomType; }

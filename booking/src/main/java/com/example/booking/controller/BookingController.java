@@ -62,4 +62,24 @@ public class BookingController {
     public ResponseEntity<List<Booking>> getBookingsForUser(@PathVariable String username) {
         return ResponseEntity.ok(bookingService.getBookingsForUser(username));
     }
+
+    // === 6. 一般用戶取消訂單（限自己的訂單） ===
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Booking> cancelBooking(@PathVariable Long id, Authentication authentication) {
+        Booking updated = bookingService.cancelBooking(id, authentication.getName());
+        return ResponseEntity.ok(updated);
+    }
+
+    // === 7. 管理員取消任意訂單 ===
+    @DeleteMapping("/admin/{id}")
+    public ResponseEntity<Booking> adminCancelBooking(@PathVariable Long id, Authentication authentication) {
+        // 檢查是否為管理員
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            return ResponseEntity.status(403).build();
+        }
+        Booking updated = bookingService.cancelBookingByAdmin(id);
+        return ResponseEntity.ok(updated);
+    }
 }

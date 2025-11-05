@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <title>管理員訂單管理</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="_csrf" th:content="${_csrf?.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf?.headerName}"/>
 </head>
 <body>
 <div class="container mt-4">
@@ -20,7 +22,8 @@
             <th>退房</th>
             <th>間數</th>
             <th>總價</th>
-            <th></th>
+            <th>狀態</th>
+            <th>動作</th>
         </tr>
         </thead>
         <tbody id="bookings"></tbody>
@@ -28,9 +31,26 @@
 </div>
 
 <script>
+    // 獲取 CSRF token
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+    // 創建通用的 fetch headers
+    const getHeaders = () => {
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrfToken && csrfHeader) {
+            headers[csrfHeader] = csrfToken;
+        }
+        return headers;
+    };
+
     async function loadBookings() {
         try {
-            const res = await fetch("/api/bookings/admin/all");
+            const res = await fetch("/api/bookings/admin/all", {
+                headers: getHeaders(),
+                credentials: 'same-origin'
+            });
+            if (!res.ok) throw new Error('載入失敗');
             const data = await res.json();
 
             const tbody = document.getElementById("bookings");
@@ -47,22 +67,47 @@
                         ${b.totalPrice ? 'NT$ ' + Number(b.totalPrice).toLocaleString() : '-'}
                     </td>
                     <td>
-                        <button class="btn btn-danger btn-sm" onclick="deleteBooking(${b.id})">刪除</button>
+                        <span class="badge ${b.status === 'CANCELLED' ? 'bg-danger' : 'bg-success'}">
+                            ${b.status || 'BOOKED'}
+                        </span>
+                    </td>
+                    <td>
+                        ${b.status !== 'CANCELLED' ?
+                            `<button class="btn btn-danger btn-sm" onclick="deleteBooking(${b.id})">取消訂單</button>`
+                            : ''}
                     </td>
                 </tr>
             `).join('');
         } catch (err) {
             console.error(err);
-            alert("載入訂單失敗");
+            alert("載入訂單失敗：" + (err.message || '未知錯誤'));
         }
     }
 
     async function deleteBooking(id) {
-        if (!confirm("確定要刪除此訂單？")) return;
-        await fetch(`/api/bookings/admin/${id}`, { method: "DELETE" });
-        loadBookings();
+        if (!confirm("確定要取消此訂單？")) return;
+
+        try {
+            const res = await fetch(`/api/bookings/admin/${id}`, {
+                method: "DELETE",
+                headers: getHeaders(),
+                credentials: 'same-origin'
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || '取消失敗');
+            }
+
+            await loadBookings();
+            alert('訂單已取消');
+        } catch (err) {
+            console.error(err);
+            alert(err.message || "取消訂單失敗");
+        }
     }
 
+    // 初始載入
     loadBookings();
 </script>
 </body>
