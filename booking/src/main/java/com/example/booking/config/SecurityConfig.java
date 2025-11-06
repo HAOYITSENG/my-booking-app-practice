@@ -42,6 +42,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/export/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/export/owner/**").hasRole("OWNER")
                         .requestMatchers("/api/export/bookings").authenticated()
+                        // 統計功能權限設定
+                        .requestMatchers("/api/statistics/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/statistics/owner/**").hasRole("OWNER")
+                        .requestMatchers("/api/statistics/**").authenticated()
                         // 其他所有請求需要登入
                         .anyRequest().authenticated()
                 )

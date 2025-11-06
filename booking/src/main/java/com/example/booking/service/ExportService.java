@@ -5,6 +5,8 @@ import com.example.booking.model.Booking;
 import com.example.booking.repository.BookingRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ExportService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExportService.class);
 
     @Autowired
     private BookingRepository bookingRepository;
@@ -48,6 +52,8 @@ public class ExportService {
      * Export all bookings (Admin)
      */
     public byte[] exportAllBookings(LocalDate startDate, LocalDate endDate, String status) throws IOException {
+        logger.info("管理員匯出所有訂單 - 開始日期: {}, 結束日期: {}, 狀態: {}", startDate, endDate, status);
+
         List<Booking> bookings = bookingRepository.findAll();
 
         // Filter conditions
@@ -58,13 +64,17 @@ public class ExportService {
             .map(this::convertToDTO)
             .collect(Collectors.toList());
 
-        return generateBookingExcel(data, true);
+        byte[] result = generateBookingExcel(data, true);
+        logger.info("管理員匯出完成 - 共 {} 筆訂單", data.size());
+        return result;
     }
 
     /**
      * Export user bookings
      */
     public byte[] exportUserBookings(String username, LocalDate startDate, LocalDate endDate) throws IOException {
+        logger.info("用戶 {} 匯出自己的訂單 - 開始日期: {}, 結束日期: {}", username, startDate, endDate);
+
         List<Booking> bookings = bookingRepository.findByUserUsername(username);
 
         List<BookingExportDTO> data = bookings.stream()
@@ -73,13 +83,17 @@ public class ExportService {
             .map(this::convertToDTO)
             .collect(Collectors.toList());
 
-        return generateBookingExcel(data, false);
+        byte[] result = generateBookingExcel(data, false);
+        logger.info("用戶 {} 匯出完成 - 共 {} 筆訂單", username, data.size());
+        return result;
     }
 
     /**
      * Export owner bookings
      */
     public byte[] exportOwnerBookings(String ownerUsername, LocalDate startDate, LocalDate endDate) throws IOException {
+        logger.info("房東 {} 匯出訂單 - 開始日期: {}, 結束日期: {}", ownerUsername, startDate, endDate);
+
         // 以 JOIN FETCH 並依房東帳號過濾，避免 NPE 與 Lazy 問題
         List<Booking> bookings = bookingRepository.findByOwnerUsernameFetchAll(ownerUsername);
 
@@ -89,7 +103,9 @@ public class ExportService {
             .map(this::convertToDTO)
             .collect(Collectors.toList());
 
-        return generateBookingExcel(data, true);
+        byte[] result = generateBookingExcel(data, true);
+        logger.info("房東 {} 匯出完成 - 共 {} 筆訂單", ownerUsername, data.size());
+        return result;
     }
 
     /**
@@ -138,45 +154,65 @@ public class ExportService {
             cell.setCellStyle(headerStyle);
         }
 
-        // Fill data
+        // 填入資料
         int rowNum = 1;
-        for (BookingExportDTO dto : data) {
-            Row row = sheet.createRow(rowNum++);
 
-            row.createCell(0).setCellValue(dto.getId());
+        // 如果沒有資料，顯示提示訊息
+        if (data.isEmpty()) {
+            Row emptyRow = sheet.createRow(rowNum);
+            Cell emptyCell = emptyRow.createCell(0);
+            emptyCell.setCellValue("目前沒有符合條件的訂單資料");
 
-            Cell createdAtCell = row.createCell(1);
-            if (dto.getCreatedAt() != null) {
-                createdAtCell.setCellValue(dto.getCreatedAt().format(DATETIME_FORMATTER));
-            } else {
-                createdAtCell.setCellValue("");
+            CellStyle messageStyle = workbook.createCellStyle();
+            messageStyle.setAlignment(HorizontalAlignment.CENTER);
+            Font messageFont = workbook.createFont();
+            messageFont.setItalic(true);
+            messageFont.setColor(IndexedColors.GREY_50_PERCENT.getIndex());
+            messageStyle.setFont(messageFont);
+            emptyCell.setCellStyle(messageStyle);
+
+            // 合併儲存格（跨所有欄位）
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum, rowNum, 0, headers.length - 1));
+        } else {
+            // 原本的填入資料邏輯
+            for (BookingExportDTO dto : data) {
+                Row row = sheet.createRow(rowNum++);
+
+                row.createCell(0).setCellValue(dto.getId());
+
+                Cell createdAtCell = row.createCell(1);
+                if (dto.getCreatedAt() != null) {
+                    createdAtCell.setCellValue(dto.getCreatedAt().format(DATETIME_FORMATTER));
+                } else {
+                    createdAtCell.setCellValue("");
+                }
+                createdAtCell.setCellStyle(dateStyle);
+
+                row.createCell(2).setCellValue(dto.getCustomerName());
+                row.createCell(3).setCellValue(dto.getAccommodationName());
+                row.createCell(4).setCellValue(dto.getRoomTypeName());
+
+                Cell checkInCell = row.createCell(5);
+                checkInCell.setCellValue(dto.getCheckIn().format(DATE_FORMATTER));
+                checkInCell.setCellStyle(dateStyle);
+
+                Cell checkOutCell = row.createCell(6);
+                checkOutCell.setCellValue(dto.getCheckOut().format(DATE_FORMATTER));
+                checkOutCell.setCellStyle(dateStyle);
+
+                row.createCell(7).setCellValue(dto.getNights());
+                row.createCell(8).setCellValue(dto.getQuantity());
+
+                Cell priceCell = row.createCell(9);
+                priceCell.setCellValue(dto.getPricePerNight().doubleValue());
+                priceCell.setCellStyle(currencyStyle);
+
+                Cell totalCell = row.createCell(10);
+                totalCell.setCellValue(dto.getTotalPrice().doubleValue());
+                totalCell.setCellStyle(currencyStyle);
+
+                row.createCell(11).setCellValue(dto.getStatusText());
             }
-            createdAtCell.setCellStyle(dateStyle);
-
-            row.createCell(2).setCellValue(dto.getCustomerName());
-            row.createCell(3).setCellValue(dto.getAccommodationName());
-            row.createCell(4).setCellValue(dto.getRoomTypeName());
-
-            Cell checkInCell = row.createCell(5);
-            checkInCell.setCellValue(dto.getCheckIn().format(DATE_FORMATTER));
-            checkInCell.setCellStyle(dateStyle);
-
-            Cell checkOutCell = row.createCell(6);
-            checkOutCell.setCellValue(dto.getCheckOut().format(DATE_FORMATTER));
-            checkOutCell.setCellStyle(dateStyle);
-
-            row.createCell(7).setCellValue(dto.getNights());
-            row.createCell(8).setCellValue(dto.getQuantity());
-
-            Cell priceCell = row.createCell(9);
-            priceCell.setCellValue(dto.getPricePerNight().doubleValue());
-            priceCell.setCellStyle(currencyStyle);
-
-            Cell totalCell = row.createCell(10);
-            totalCell.setCellValue(dto.getTotalPrice().doubleValue());
-            totalCell.setCellStyle(currencyStyle);
-
-            row.createCell(11).setCellValue(dto.getStatusText());
         }
 
         // Auto-size columns

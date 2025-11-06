@@ -177,22 +177,32 @@
 
         // 匯出我的訂單
         function exportMyBookings() {
-            const url = '/api/export/bookings';
-            const link = document.createElement('a');
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
             const btn = event.target;
-            const originalText = btn.innerHTML;
+            const originalHTML = btn.innerHTML;
             btn.innerHTML = '⏳ 匯出中...';
             btn.disabled = true;
 
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }, 2000);
+            fetch('/api/export/bookings', { method: 'GET', credentials: 'same-origin' })
+                .then(response => { if (!response.ok) throw new Error('匯出失敗'); return response.blob(); })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `我的訂單_${Date.now()}.xlsx`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+
+                    btn.innerHTML = '✅ 匯出成功';
+                    setTimeout(() => { btn.innerHTML = originalHTML; btn.disabled = false; }, 1500);
+                })
+                .catch(err => {
+                    console.error('匯出錯誤:', err);
+                    alert('匯出失敗，請稍後再試');
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                });
         }
 
         // 註冊篩選器點擊事件

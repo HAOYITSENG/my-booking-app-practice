@@ -67,8 +67,15 @@ public class ExportController {
                     .body(excelBytes);
 
         } catch (IOException e) {
-            logger.error("Error exporting bookings", e);
-            return ResponseEntity.internalServerError().build();
+            logger.error("匯出 Excel 時發生錯誤", e);
+            return ResponseEntity.internalServerError()
+                    .header("Content-Type", "text/plain; charset=UTF-8")
+                    .body("匯出失敗，請稍後再試或聯絡系統管理員".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            logger.error("發生未預期的錯誤", e);
+            return ResponseEntity.internalServerError()
+                    .header("Content-Type", "text/plain; charset=UTF-8")
+                    .body("系統錯誤，請聯絡管理員".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
     }
 
@@ -103,8 +110,15 @@ public class ExportController {
                     .body(excelBytes);
 
         } catch (IOException e) {
-            logger.error("Error exporting admin bookings", e);
-            return ResponseEntity.internalServerError().build();
+            logger.error("匯出 Excel 時發生錯誤", e);
+            return ResponseEntity.internalServerError()
+                    .header("Content-Type", "text/plain; charset=UTF-8")
+                    .body("匯出失敗，請稍後再試或聯絡系統管理員".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            logger.error("發生未預期的錯誤", e);
+            return ResponseEntity.internalServerError()
+                    .header("Content-Type", "text/plain; charset=UTF-8")
+                    .body("系統錯誤，請聯絡管理員".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
     }
 
@@ -139,8 +153,15 @@ public class ExportController {
                     .body(excelBytes);
 
         } catch (IOException e) {
-            logger.error("Error exporting owner revenue report", e);
-            return ResponseEntity.internalServerError().build();
+            logger.error("匯出 Excel 時發生錯誤", e);
+            return ResponseEntity.internalServerError()
+                    .header("Content-Type", "text/plain; charset=UTF-8")
+                    .body("匯出失敗，請稍後再試或聯絡系統管理員".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            logger.error("發生未預期的錯誤", e);
+            return ResponseEntity.internalServerError()
+                    .header("Content-Type", "text/plain; charset=UTF-8")
+                    .body("系統錯誤，請聯絡管理員".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
     }
 

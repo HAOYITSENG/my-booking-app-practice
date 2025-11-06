@@ -41,7 +41,7 @@ public class Booking {
     @JsonIgnoreProperties({"password"}) // 不暴露密碼
     private User user;
 
-    @Transient
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     public Booking() {}

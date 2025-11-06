@@ -69,6 +69,12 @@ public class OwnerController {
         bookingService.deleteRoomType(id, authentication.getName());
     }
 
+    // 取得房東的所有訂單
+    @GetMapping("/bookings")
+    public List<Booking> getOwnerBookings(Authentication authentication) {
+        return bookingService.getBookingsForOwner(authentication.getName());
+    }
+
     @PostMapping("/bookings/{id}/confirm")
     public ResponseEntity<Booking> confirmBooking(
             @PathVariable Long id,

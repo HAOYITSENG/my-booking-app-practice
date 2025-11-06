@@ -1,31 +1,56 @@
+-- 插入測試用戶資料
 INSERT INTO users (username, password, role) VALUES
-                                                 ('admin', '$2a$10$VbHnY3E7M5Kj8M8Q1KJt0uhxXb0zGuqgsk1F6D1aQIZv4Sx2FQk9m', 'ROLE_ADMIN'),
-                                                 ('user1', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_USER');
+('admin', '$2a$10$VbHnY3E7M5Kj8M8Q1KJt0uhxXb0zGuqgsk1F6D1aQIZv4Sx2FQk9m', 'ROLE_ADMIN'),
+('owner1', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_OWNER'),
+('owner2', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_OWNER'),
+('user1', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_USER'),
+('user2', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_USER'),
+('user3', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_USER');
 
-INSERT INTO accommodations (name, location, description, price_per_night, amenities) VALUES
-                                                                                         ('台北商旅', '台北', '位於信義區的商務旅館', 2200, 'WiFi, 早餐, 停車場'),
-                                                                                         ('高雄港景飯店', '高雄', '擁有海景陽台', 1800, 'WiFi, 健身房, 游泳池');
+-- 插入住宿資料
+INSERT INTO accommodations (name, location, description, price_per_night, amenities, owner_id) VALUES
+('台北商旅', '台北', '位於信義區的商務旅館', 2200.00, 'WiFi, 早餐, 停車場', 2),
+('高雄港景飯店', '高雄', '擁有海景陽台的度假飯店', 1800.00, 'WiFi, 健身房, 游泳池', 2),
+('台中精品旅館', '台中', '現代化設計的精品旅館', 2500.00, 'WiFi, 會議室, 餐廳', 3),
+('花蓮民宿', '花蓮', '靠近太魯閣的溫馨民宿', 1500.00, 'WiFi, 腳踏車租借, 導覽服務', 3);
 
-CREATE TABLE bookings (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    room_type_id BIGINT NOT NULL,
-    check_in DATE NOT NULL,
-    check_out DATE NOT NULL,
-    booked_quantity INT NOT NULL,
-    total_price DECIMAL(10, 2) NOT NULL,
-    status VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (room_type_id) REFERENCES room_types(id)
-);
+-- 插入房型資料
+INSERT INTO room_types (name, description, price_per_night, total_rooms, accommodation_id) VALUES
+('標準房', '基本設施的標準房型', 2200.00, 10, 1),
+('豪華房', '提供更高級設施的豪華房型', 3200.00, 5, 1),
+('海景房', '面海的景觀房型', 1800.00, 8, 2),
+('港景套房', '港景豪華套房', 2800.00, 3, 2),
+('商務房', '適合商務人士的房型', 2500.00, 12, 3),
+('行政套房', '頂級行政套房', 4500.00, 4, 3),
+('雙人房', '溫馨雙人房', 1500.00, 6, 4),
+('家庭房', '適合家庭的大房間', 2200.00, 4, 4);
 
--- Sample data for room_types
-INSERT INTO room_types (id, name, description, price_per_night) VALUES
-(1, '標準房', '基本設施的標準房型', 2200),
-(2, '豪華房', '提供更高級設施的房型', 4500);
+-- 插入訂單資料（包含各種狀態和時間分布）
+INSERT INTO bookings (user_id, room_type_id, check_in, check_out, booked_quantity, total_price, status, created_at) VALUES
+-- 最近一週的訂單
+(4, 1, '2025-11-10', '2025-11-12', 1, 4400.00, 'CONFIRMED', '2025-11-01 10:30:00'),
+(5, 2, '2025-11-11', '2025-11-13', 1, 6400.00, 'CONFIRMED', '2025-11-01 14:20:00'),
+(6, 3, '2025-11-12', '2025-11-15', 2, 5400.00, 'CONFIRMED', '2025-11-02 09:15:00'),
+(4, 4, '2025-11-15', '2025-11-17', 1, 5600.00, 'PENDING', '2025-11-02 16:45:00'),
+(5, 5, '2025-11-18', '2025-11-20', 1, 5000.00, 'CONFIRMED', '2025-11-03 11:30:00'),
+(6, 6, '2025-11-20', '2025-11-22', 1, 9000.00, 'PENDING', '2025-11-03 13:20:00'),
+(4, 7, '2025-11-22', '2025-11-25', 2, 4500.00, 'CONFIRMED', '2025-11-04 08:45:00'),
+(5, 8, '2025-11-25', '2025-11-27', 1, 4400.00, 'CANCELLED', '2025-11-04 15:10:00'),
 
--- Sample data for bookings
-INSERT INTO bookings (user_id, room_type_id, check_in, check_out, booked_quantity, total_price, status) VALUES
-(1, 1, '2025-11-01', '2025-11-05', 2, 8800.00, 'CONFIRMED'),
-(2, 2, '2025-11-10', '2025-11-15', 1, 9000.00, 'PENDING');
+-- 上個月的訂單
+(4, 1, '2025-10-15', '2025-10-17', 1, 4400.00, 'CONFIRMED', '2025-10-10 12:00:00'),
+(5, 2, '2025-10-20', '2025-10-22', 2, 6400.00, 'CONFIRMED', '2025-10-12 14:30:00'),
+(6, 3, '2025-10-25', '2025-10-28', 1, 5400.00, 'CONFIRMED', '2025-10-15 16:20:00'),
+(4, 4, '2025-10-28', '2025-10-30', 1, 5600.00, 'CANCELLED', '2025-10-18 10:45:00'),
+(5, 5, '2025-10-30', '2025-11-01', 1, 5000.00, 'CONFIRMED', '2025-10-20 09:30:00'),
+(6, 6, '2025-10-05', '2025-10-07', 1, 9000.00, 'CONFIRMED', '2025-10-01 11:15:00'),
+(4, 7, '2025-10-08', '2025-10-10', 2, 4500.00, 'CONFIRMED', '2025-10-02 13:40:00'),
+(5, 8, '2025-10-12', '2025-10-14', 1, 4400.00, 'CONFIRMED', '2025-10-05 15:20:00'),
+
+-- 更早期的訂單
+(4, 1, '2025-09-10', '2025-09-12', 1, 4400.00, 'CONFIRMED', '2025-09-05 10:00:00'),
+(5, 2, '2025-09-15', '2025-09-17', 1, 6400.00, 'CONFIRMED', '2025-09-08 12:30:00'),
+(6, 3, '2025-09-20', '2025-09-22', 2, 5400.00, 'CONFIRMED', '2025-09-10 14:45:00'),
+(4, 5, '2025-09-25', '2025-09-27', 1, 5000.00, 'CONFIRMED', '2025-09-15 16:20:00'),
+(5, 7, '2025-08-15', '2025-08-17', 2, 4500.00, 'CONFIRMED', '2025-08-10 11:30:00'),
+(6, 8, '2025-08-20', '2025-08-22', 1, 4400.00, 'CONFIRMED', '2025-08-12 13:15:00');
