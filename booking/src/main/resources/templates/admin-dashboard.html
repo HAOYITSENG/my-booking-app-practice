@@ -49,7 +49,30 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">報表中心</h5>
+                    <p class="card-text">匯出訂單明細與統計報表。</p>
+                    <button class="btn btn-warning" onclick="exportAdminReport()">匯出報表</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+// 匯出管理員報表
+function exportAdminReport() {
+    const url = '/api/export/admin/bookings';
+    const link = document.createElement('a');
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    alert('報表匯出中，請稍候...');
+}
+</script>
 </body>
 </html>

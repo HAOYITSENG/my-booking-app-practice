@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -38,6 +38,10 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**", "/login", "/register", "/css/**", "/js/**", "/images/**","/api/auth/**").permitAll()
                         // 允許公開訪問的 API
                         .requestMatchers("/api/accommodations/**").permitAll()
+                        // 匯出功能權限設定
+                        .requestMatchers("/api/export/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/export/owner/**").hasRole("OWNER")
+                        .requestMatchers("/api/export/bookings").authenticated()
                         // 其他所有請求需要登入
                         .anyRequest().authenticated()
                 )
@@ -73,8 +77,7 @@ public class SecurityConfig {
                         .permitAll()
                 )
                 .headers(headers -> headers
-                        .frameOptions().sameOrigin()
-                )
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/h2-console/**", "/api/**"));
 

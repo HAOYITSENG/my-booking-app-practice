@@ -79,6 +79,12 @@
     </header>
 
     <main class="container">
+        <div class="mb-3">
+            <button class="btn btn-success" onclick="exportOwnerBookings()" style="background: #28a745; color: white; padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer;">
+                📊 匯出營收報表
+            </button>
+        </div>
+
         <section class="filters">
             <h2>篩選器</h2>
             <button class="filter-btn active" data-status="all">全部</button>
@@ -211,6 +217,19 @@
             } catch (error) {
                 alert('取消失敗：' + error.message);
             }
+        }
+
+        // 匯出房東訂單報表
+        function exportOwnerBookings() {
+            const url = '/api/export/owner/revenue';
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'owner-revenue.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            alert('營收報表匯出中，請稍候...');
         }
 
         // 註冊篩選器點擊事件

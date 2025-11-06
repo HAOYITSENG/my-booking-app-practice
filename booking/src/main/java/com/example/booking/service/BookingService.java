@@ -172,23 +172,15 @@ public class BookingService {
     }
 
     public List<Booking> getBookingsForUser(String username) {
-        return bookingRepo.findByUserUsername(username);
+        return bookingRepo.findByUserUsernameFetchAll(username);
     }
 
     public List<Booking> getAllBookings() {
-        List<Booking> bookings = bookingRepo.findAll();
-
-        // 觸發 Lazy 載入，確保 JSON 有住宿名稱
-        for (Booking b : bookings) {
-            if (b.getRoomType() != null && b.getRoomType().getAccommodation() != null) {
-                b.getRoomType().getAccommodation().getName(); // Hibernate 初始化
-            }
-        }
-
-        return bookings;
+        return bookingRepo.findAllWithRelations();
     }
 
 
+    @SuppressWarnings("unused")
     public List<Accommodation> getAvailableAccommodations(LocalDate checkIn, LocalDate checkOut) {
         return accommodationRepo.findAll();
     }
@@ -321,18 +313,9 @@ public class BookingService {
     }
 
     // === 房東查看自己住宿的訂單 ===
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public List<Booking> getBookingsForOwner(String username) {
-        List<Accommodation> ownerAccommodations = accommodationRepo.findByOwnerUsername(username);
-        return bookingRepo.findAll().stream()
-                .filter(booking ->
-                    ownerAccommodations.contains(booking.getRoomType().getAccommodation()))
-                .peek(booking -> {
-                    // 確保懶加載的關聯被初始化
-                    if (booking.getRoomType() != null && booking.getRoomType().getAccommodation() != null) {
-                        booking.getRoomType().getAccommodation().getName();
-                    }
-                })
-                .toList();
+        return bookingRepo.findByOwnerUsernameFetchAll(username);
     }
 
     // === 房東確認訂單 ===

@@ -33,6 +33,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>所有訂單</h3>
         <div>
+            <button class="btn btn-success me-2" onclick="exportBookings()">
+                <i class="bi bi-download"></i> 匯出 Excel
+            </button>
             <a href="/admin-dashboard" class="btn btn-secondary me-2">返回儀表板</a>
             <button class="btn btn-primary" onclick="loadBookings()">重新載入</button>
         </div>
@@ -214,6 +217,38 @@
             console.error(err);
             alert(err.message || "取消訂單失敗");
         }
+    }
+
+    // 匯出訂單到 Excel
+    function exportBookings() {
+        const activeFilter = document.querySelector('.filter-btn.active').dataset.status;
+        const status = activeFilter !== 'all' ? activeFilter : '';
+
+        let url = '/api/export/bookings';
+        const params = new URLSearchParams();
+        if (status) {
+            params.append('status', status);
+        }
+
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = '';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        const originalText = event.target.innerHTML;
+        event.target.innerHTML = '<i class="bi bi-check-circle"></i> 匯出中...';
+        event.target.disabled = true;
+
+        setTimeout(() => {
+            event.target.innerHTML = originalText;
+            event.target.disabled = false;
+        }, 2000);
     }
 
     // 註冊篩選器點擊事件

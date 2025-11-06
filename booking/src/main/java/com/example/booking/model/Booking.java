@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "bookings")
@@ -39,6 +40,9 @@ public class Booking {
     @JoinColumn(name = "user_id")
     @JsonIgnoreProperties({"password"}) // 不暴露密碼
     private User user;
+
+    @Transient
+    private LocalDateTime createdAt;
 
     public Booking() {}
 
@@ -77,4 +81,19 @@ public class Booking {
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

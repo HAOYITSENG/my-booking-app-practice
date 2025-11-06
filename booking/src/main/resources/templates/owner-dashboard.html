@@ -143,6 +143,13 @@
                     <p>查看和處理訂單請求</p>
                 </a>
             </div>
+            <div class="action-card">
+                <a href="javascript:void(0)" onclick="exportOwnerRevenue()">
+                    <div class="icon">📊</div>
+                    <h3>營收報表</h3>
+                    <p>下載 Excel 格式的營收統計報表</p>
+                </a>
+            </div>
         </section>
     </main>
 
@@ -182,6 +189,18 @@
             } catch (error) {
                 console.error('載入統計資料失敗:', error);
             }
+        }
+
+        // 匯出營收報表
+        function exportOwnerRevenue() {
+            const url = '/api/export/owner/revenue';
+            const link = document.createElement('a');
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            alert('營收報表匯出中，請稍候...');
         }
 
         // 頁面載入時載入統計資料
