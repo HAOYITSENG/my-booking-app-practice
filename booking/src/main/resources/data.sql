@@ -1,11 +1,11 @@
 -- 插入測試用戶資料
 INSERT INTO users (username, password, role) VALUES
-('admin', '$2a$10$VbHnY3E7M5Kj8M8Q1KJt0uhxXb0zGuqgsk1F6D1aQIZv4Sx2FQk9m', 'ROLE_ADMIN'),
-('owner1', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_OWNER'),
-('owner2', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_OWNER'),
-('user1', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_USER'),
-('user2', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_USER'),
-('user3', '$2a$10$QpluA8Fh2GcGkgBhAj8C8OZJd4sN4D4SxC0FZdA3w5KqYpUqjWk7m', 'ROLE_USER');
+('admin', '$2a$10$xq/Hiv88tailBWCHP2mJYu6wFVPB2sQZnROdstz0uLX9aAgIpqo9S', 'ROLE_ADMIN'),
+('owner1', '$2a$10$8ELofG74XL79mNEeOF24VeyWXVYc89XpoWtj1jmjpKF1uelEfnCnK', 'ROLE_OWNER'),
+('owner2', '$2a$10$8ELofG74XL79mNEeOF24VeyWXVYc89XpoWtj1jmjpKF1uelEfnCnK', 'ROLE_OWNER'),
+('user1', '$2a$10$8ELofG74XL79mNEeOF24VeyWXVYc89XpoWtj1jmjpKF1uelEfnCnK', 'ROLE_USER'),
+('user2', '$2a$10$8ELofG74XL79mNEeOF24VeyWXVYc89XpoWtj1jmjpKF1uelEfnCnK', 'ROLE_USER'),
+('user3', '$2a$10$8ELofG74XL79mNEeOF24VeyWXVYc89XpoWtj1jmjpKF1uelEfnCnK', 'ROLE_USER');
 
 -- 插入住宿資料
 INSERT INTO accommodations (name, location, description, price_per_night, amenities, owner_id) VALUES
