@@ -27,13 +27,13 @@ public class StatisticsService {
     @Autowired
     private AccommodationRepository accommodationRepository;
 
-    // 簡單的記憶體快取（實際專案建議使用 Redis 或 Caffeine）
+    // Simple memory cache (Redis or Caffeine recommended for production)
     private Map<String, Object> cache = new ConcurrentHashMap<>();
     private Map<String, Long> cacheTime = new ConcurrentHashMap<>();
-    private static final long CACHE_DURATION = 5 * 60 * 1000; // 5 分鐘
+    private static final long CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
     /**
-     * 檢查快取是否有效
+     * Check if cache is valid
      */
     private boolean isCacheValid(String key) {
         Long timestamp = cacheTime.get(key);
@@ -46,11 +46,11 @@ public class StatisticsService {
     @SuppressWarnings("unchecked")
     private <T> T getFromCacheOrCompute(String key, java.util.function.Supplier<T> supplier) {
         if (isCacheValid(key)) {
-            logger.debug("從快取取得資料: {}", key);
+            logger.debug("Retrieved data from cache: {}", key);
             return (T) cache.get(key);
         }
 
-        logger.debug("重新計算資料: {}", key);
+        logger.debug("Recalculating data: {}", key);
         T result = supplier.get();
         cache.put(key, result);
         cacheTime.put(key, System.currentTimeMillis());
@@ -67,7 +67,7 @@ public class StatisticsService {
                    && booking.getRoomType().getAccommodation().getOwner() != null
                    && ownerUsername.equals(booking.getRoomType().getAccommodation().getOwner().getUsername());
         } catch (Exception e) {
-            logger.warn("無法取得訂單 {} 的房東資訊: {}", booking.getId(), e.getMessage());
+            logger.warn("Unable to get owner info for booking {}: {}", booking.getId(), e.getMessage());
             return false;
         }
     }
@@ -78,7 +78,7 @@ public class StatisticsService {
      */
     public Map<String, Long> getOrderStatusDistribution() {
         return getFromCacheOrCompute("orderStatusDistribution", () -> {
-            logger.info("計算訂單狀態分布");
+            logger.info("Calculating order status distribution");
 
             List<Booking> bookings = bookingRepository.findAll();
 
@@ -93,7 +93,7 @@ public class StatisticsService {
             statusMap.putIfAbsent("CONFIRMED", 0L);
             statusMap.putIfAbsent("CANCELLED", 0L);
 
-            logger.info("訂單狀態分布計算完成: {}", statusMap);
+            logger.info("Order status distribution calculation completed: {}", statusMap);
             return statusMap;
         });
     }
@@ -102,7 +102,7 @@ public class StatisticsService {
      * 取得房東的訂單狀態分布
      */
     public Map<String, Long> getOwnerOrderStatusDistribution(String ownerUsername) {
-        logger.info("計算房東 {} 的訂單狀態分布", ownerUsername);
+        logger.info("Calculating order status distribution for owner: {}", ownerUsername);
 
         List<Booking> bookings = bookingRepository.findAll().stream()
             .filter(b -> isBookingOwnedBy(b, ownerUsername))
@@ -127,7 +127,7 @@ public class StatisticsService {
      * @return List of Map，每個 Map 包含 date, new, confirmed, cancelled
      */
     public List<Map<String, Object>> getOrdersTrend(int days) {
-        logger.info("計算近 {} 天的訂單趨勢", days);
+        logger.info("Calculating orders trend for recent {} days", days);
 
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(days - 1);
@@ -170,7 +170,7 @@ public class StatisticsService {
             result.add(dayData);
         }
 
-        logger.info("訂單趨勢計算完成，共 {} 天", result.size());
+        logger.info("Orders trend calculation completed, total {} days", result.size());
         return result;
     }
 
@@ -180,7 +180,7 @@ public class StatisticsService {
      * @return List of Map，每個 Map 包含 name, count
      */
     public List<Map<String, Object>> getTopAccommodations(int limit) {
-        logger.info("計算熱門住宿 Top {}", limit);
+        logger.info("Calculating top {} popular accommodations", limit);
 
         List<Booking> bookings = bookingRepository.findAll();
 
@@ -203,7 +203,7 @@ public class StatisticsService {
             })
             .collect(Collectors.toList());
 
-        logger.info("熱門住宿計算完成，共 {} 個", result.size());
+        logger.info("Top accommodations calculation completed, total {} items", result.size());
         return result;
     }
 
@@ -213,7 +213,7 @@ public class StatisticsService {
      * @return List of Map，每個 Map 包含 month, revenue
      */
     public List<Map<String, Object>> getMonthlyRevenue(int months) {
-        logger.info("計算近 {} 個月的營收", months);
+        logger.info("Calculating monthly revenue for recent {} months", months);
 
         List<Booking> bookings = bookingRepository.findAll();
 
@@ -240,7 +240,7 @@ public class StatisticsService {
             result.add(monthData);
         }
 
-        logger.info("月度營收計算完成，共 {} 個月", result.size());
+        logger.info("Monthly revenue calculation completed, total {} months", result.size());
         return result;
     }
 
@@ -248,7 +248,7 @@ public class StatisticsService {
      * 取得房東的月度營收
      */
     public List<Map<String, Object>> getOwnerMonthlyRevenue(String ownerUsername, int months) {
-        logger.info("計算房東 {} 近 {} 個月的營收", ownerUsername, months);
+        logger.info("Calculating monthly revenue for owner {} in recent {} months", ownerUsername, months);
 
         List<Booking> bookings = bookingRepository.findAll().stream()
             .filter(b -> isBookingOwnedBy(b, ownerUsername))
@@ -284,7 +284,7 @@ public class StatisticsService {
      * 取得房東的住宿營收佔比
      */
     public List<Map<String, Object>> getOwnerAccommodationRevenue(String ownerUsername) {
-        logger.info("計算房東 {} 的住宿營收佔比", ownerUsername);
+        logger.info("Calculating accommodation revenue distribution for owner: {}", ownerUsername);
 
         List<Booking> bookings = bookingRepository.findAll().stream()
             .filter(b -> "CONFIRMED".equals(b.getStatus()))
@@ -312,7 +312,7 @@ public class StatisticsService {
             ))
             .collect(Collectors.toList());
 
-        logger.info("住宿營收佔比計算完成，共 {} 個住宿", result.size());
+        logger.info("Accommodation revenue distribution calculation completed, total {} accommodations", result.size());
         return result;
     }
 
@@ -320,7 +320,7 @@ public class StatisticsService {
      * 取得房東的房型銷售排行
      */
     public List<Map<String, Object>> getOwnerRoomTypeSales(String ownerUsername) {
-        logger.info("計算房東 {} 的房型銷售排行", ownerUsername);
+        logger.info("Calculating room type sales ranking for owner: {}", ownerUsername);
 
         List<Booking> bookings = bookingRepository.findAll().stream()
             .filter(b -> isBookingOwnedBy(b, ownerUsername))
@@ -333,7 +333,7 @@ public class StatisticsService {
                     try {
                         return b.getRoomType().getAccommodation().getName() + " - " + b.getRoomType().getName();
                     } catch (Exception e) {
-                        return "未知住宿 - 未知房型";
+                        return "Unknown Accommodation - Unknown Room Type";
                     }
                 },
                 Collectors.counting()
@@ -350,7 +350,7 @@ public class StatisticsService {
             })
             .collect(Collectors.toList());
 
-        logger.info("房型銷售排行計算完成，共 {} 個房型", result.size());
+        logger.info("Room type sales ranking calculation completed, total {} room types", result.size());
         return result;
     }
 
@@ -358,7 +358,7 @@ public class StatisticsService {
      * 取得房東的入住率趨勢（近 N 天）
      */
     public List<Map<String, Object>> getOwnerOccupancyRate(String ownerUsername, int days) {
-        logger.info("計算房東 {} 近 {} 天的入住率", ownerUsername, days);
+        logger.info("Calculating occupancy rate for owner {} in recent {} days", ownerUsername, days);
 
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(days - 1);
@@ -376,7 +376,7 @@ public class StatisticsService {
             .sum();
 
         if (totalRooms == 0) {
-            logger.warn("房東 {} 沒有房間", ownerUsername);
+            logger.warn("Owner {} has no rooms", ownerUsername);
             return new ArrayList<>();
         }
 
@@ -401,7 +401,7 @@ public class StatisticsService {
             result.add(dayData);
         }
 
-        logger.info("入住率趨勢計算完成，共 {} 天", result.size());
+        logger.info("Occupancy rate trend calculation completed, total {} days", result.size());
         return result;
     }
 }
