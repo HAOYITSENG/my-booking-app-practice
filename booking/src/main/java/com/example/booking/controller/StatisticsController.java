@@ -9,8 +9,16 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+// Swagger annotations
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/statistics")
+@Tag(name = "Statistics", description = "統計資料 API")
 public class StatisticsController {
 
     @Autowired
@@ -22,6 +30,14 @@ public class StatisticsController {
      * 房東：自己的訂單
      */
     @GetMapping("/order-status")
+    @Operation(
+        summary = "取得訂單狀態分布",
+        description = "回傳待確認、已確認、已取消的訂單數量統計"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功取得統計資料"),
+        @ApiResponse(responseCode = "401", description = "未登入")
+    })
     public ResponseEntity<Map<String, Long>> getOrderStatus(Authentication authentication) {
         String username = authentication.getName();
         boolean isOwner = authentication.getAuthorities().stream()
@@ -42,7 +58,16 @@ public class StatisticsController {
      * @param days 天數，預設 30 天
      */
     @GetMapping("/orders-trend")
+    @Operation(
+        summary = "取得訂單趨勢",
+        description = "回傳近 N 天的訂單數量趨勢，包含新增、已確認、已取消的每日統計"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功取得趨勢資料"),
+        @ApiResponse(responseCode = "401", description = "未登入")
+    })
     public ResponseEntity<List<Map<String, Object>>> getOrdersTrend(
+            @Parameter(description = "統計天數", example = "30")
             @RequestParam(defaultValue = "30") int days) {
 
         if (days < 1 || days > 365) {
@@ -174,6 +199,15 @@ public class StatisticsController {
      * 取得管理員儀表板的所有統計資料（一次性取得）
      */
     @GetMapping("/admin/dashboard")
+    @Operation(
+        summary = "取得管理員儀表板資料",
+        description = "一次性取得所有管理員儀表板需要的統計資料，包含訂單狀態、趨勢、熱門住宿、月度營收"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功取得儀表板資料"),
+        @ApiResponse(responseCode = "401", description = "未登入"),
+        @ApiResponse(responseCode = "403", description = "需要管理員權限")
+    })
     public ResponseEntity<Map<String, Object>> getAdminDashboard(Authentication authentication) {
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));

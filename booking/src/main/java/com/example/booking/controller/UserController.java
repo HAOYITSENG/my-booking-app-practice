@@ -2,6 +2,12 @@ package com.example.booking.controller;
 
 import com.example.booking.model.User;
 import com.example.booking.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "使用者認證與註冊 API")
 public class UserController {
 
     @Autowired
@@ -19,16 +26,29 @@ public class UserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    /**
-     * 註冊新帳號
-     * 測試用範例：
-     * POST /api/auth/register
-     * Content-Type: application/x-www-form-urlencoded
-     * username=testuser&password=123456
-     */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestParam String username,
-                                      @RequestParam String password) {
+    @Operation(
+        summary = "註冊新帳號",
+        description = """
+            註冊新使用者帳號。帳號需 3-20 字元，密碼至少 6 字元。
+            註冊後預設為一般用戶角色（ROLE_USER）。
+            """
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "註冊成功",
+            content = @Content(mediaType = "text/plain")
+        ),
+        @ApiResponse(responseCode = "400", description = "參數錯誤（帳號或密碼格式不符）"),
+        @ApiResponse(responseCode = "409", description = "帳號已存在"),
+        @ApiResponse(responseCode = "500", description = "系統錯誤")
+    })
+    public ResponseEntity<?> register(
+        @Parameter(description = "使用者帳號（3-20 字元）", required = true, example = "newuser")
+        @RequestParam String username,
+        @Parameter(description = "密碼（至少 6 字元）", required = true, example = "password123")
+        @RequestParam String password) {
 
         // 基本验证
         if (username == null || username.isBlank() ||
@@ -67,11 +87,19 @@ public class UserController {
         }
     }
 
-    /**
-     * 取得目前登入者資訊
-     * GET /api/auth/me
-     */
     @GetMapping("/me")
+    @Operation(
+        summary = "取得目前登入者資訊",
+        description = "回傳目前登入使用者的帳號名稱"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功取得使用者資訊",
+            content = @Content(mediaType = "text/plain")
+        ),
+        @ApiResponse(responseCode = "401", description = "未登入")
+    })
     public ResponseEntity<?> currentUser(Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

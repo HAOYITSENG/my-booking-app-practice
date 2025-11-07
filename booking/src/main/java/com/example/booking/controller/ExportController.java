@@ -18,8 +18,17 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+// Swagger annotations
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/export")
+@Tag(name = "Export", description = "資料匯出 API")
 public class ExportController {
 
     @Autowired
@@ -31,9 +40,25 @@ public class ExportController {
      * Export bookings based on user role
      */
     @GetMapping("/bookings")
+    @Operation(
+        summary = "匯出訂單",
+        description = "匯出訂單為 Excel 格式。根據使用者角色自動判斷匯出範圍。"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "匯出成功",
+            content = @Content(mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        ),
+        @ApiResponse(responseCode = "401", description = "未登入"),
+        @ApiResponse(responseCode = "500", description = "匯出失敗")
+    })
     public ResponseEntity<byte[]> exportBookings(
+            @Parameter(description = "開始日期（入住日期）", example = "2025-01-01")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "結束日期（入住日期）", example = "2025-01-31")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @Parameter(description = "訂單狀態篩選", example = "CONFIRMED")
             @RequestParam(required = false) String status,
             Authentication authentication) {
 

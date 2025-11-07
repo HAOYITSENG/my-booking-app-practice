@@ -28,6 +28,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
+                        // 允許 Swagger/OpenAPI
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         // 管理員專用 API 端點
                         .requestMatchers("/api/admin/**", "/api/bookings/admin/**").hasRole("ADMIN")
                         // 房東專用頁面和API端點
