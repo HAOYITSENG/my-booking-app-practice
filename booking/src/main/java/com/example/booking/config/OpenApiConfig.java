@@ -254,7 +254,7 @@ public class OpenApiConfig {
                                 .url("http://localhost:8080")
                                 .description("🖥️ 開發環境 (Local Development)"),
                         new Server()
-                                .url("https://your-production-domain.com")
+                                .url("https://mybookingappdemo.zeabur.app")
                                 .description("🌐 正式環境 (Production)")
                 ))
                 .components(new Components()
