@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf?.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf?.headerName}"/>
     <title>我的收藏 - 訂房系統</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <style>
@@ -48,12 +50,8 @@
         .favorite-image {
             width: 100%;
             height: 200px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 48px;
+            object-fit: cover;
+            display: block;
         }
 
         .favorite-content {
@@ -247,9 +245,10 @@
             <div th:each="accommodation : ${favorites}" class="favorite-card" th:data-id="${accommodation.id}">
                 <div class="favorite-badge">❤️ 已收藏</div>
 
-                <div class="favorite-image">
-                    🏨
-                </div>
+                <img th:src="${accommodation.imageUrl != null ? accommodation.imageUrl : 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400'}"
+                     th:alt="${accommodation.name}"
+                     class="favorite-image"
+                     onerror="this.src='https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400'">
 
                 <div class="favorite-content">
                     <div class="favorite-name" th:text="${accommodation.name}">住宿名稱</div>
@@ -302,11 +301,22 @@
                 return;
             }
 
+            // 獲取 CSRF token
+            const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+            const header = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            // 添加 CSRF token 到請求頭
+            if (token && header) {
+                headers[header] = token;
+            }
+
             fetch(`/user/favorites/api/${accommodationId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                headers: headers
             })
             .then(response => response.json())
             .then(data => {
