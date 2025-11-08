@@ -7,6 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.booking.model.Accommodation;
+import com.example.booking.model.RoomType;
 import com.example.booking.service.BookingService;
 
 // Swagger annotations
@@ -30,14 +31,17 @@ public class AccommodationController {
     @GetMapping
     @Operation(
         summary = "取得所有住宿",
-        description = "回傳系統中所有可用的住宿列表，包含住宿名稱、地點、描述、價格等資訊"
+        description = "回傳系統中所有可用的住宿列表，支援多種排序方式"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "成功取得住宿列表"),
         @ApiResponse(responseCode = "500", description = "伺服器錯誤")
     })
-    public List<Accommodation> list() {
-        return bookingService.getAllAccommodations();
+    public List<Accommodation> list(
+        @Parameter(description = "排序方式：price_asc(價格低到高), price_desc(價格高到低), rating(評分), popularity(熱門), distance(距離), name_asc(名稱A-Z), name_desc(名稱Z-A)", example = "price_asc")
+        @RequestParam(required = false) String sortBy
+    ) {
+        return bookingService.getAllAccommodations(sortBy);
     }
 
     @GetMapping("/{id}")
@@ -63,17 +67,54 @@ public class AccommodationController {
     @GetMapping("/search")
     @Operation(
         summary = "搜尋住宿",
-        description = "根據地點關鍵字搜尋住宿，支援模糊搜尋且不區分大小寫"
+        description = "根據地點或名稱關鍵字搜尋住宿，支援模糊搜尋、排序功能"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "成功取得搜尋結果"),
         @ApiResponse(responseCode = "400", description = "搜尋參數錯誤")
     })
-    public List<Accommodation> searchByLocation(
-        @Parameter(description = "地點關鍵字", required = true, example = "台北")
-        @RequestParam String location
+    public List<Accommodation> searchAccommodations(
+        @Parameter(description = "搜尋關鍵字（地點或名稱）", example = "台北")
+        @RequestParam(required = false) String query,
+        @Parameter(description = "地點關鍵字（保留向下兼容）", example = "台北")
+        @RequestParam(required = false) String location,
+        @Parameter(description = "入住日期", example = "2025-11-10")
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+        @Parameter(description = "退房日期", example = "2025-11-12")
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+        @Parameter(description = "入住人數", example = "2")
+        @RequestParam(required = false) Integer guests,
+        @Parameter(description = "排序方式：price_asc(價格低到高), price_desc(價格高到低), rating(評分), popularity(熱門), distance(距離)", example = "price_asc")
+        @RequestParam(required = false) String sortBy
     ) {
-        return bookingService.searchByLocation(location);
+        // 統一使用 query 參數，但保留 location 以向下兼容
+        String searchKeyword = query != null ? query : location;
+
+        // 如果有日期，執行可用性搜尋
+        if (checkIn != null && checkOut != null) {
+            List<Accommodation> available = bookingService.getAvailableAccommodations(checkIn, checkOut);
+
+            // 如果還有關鍵字，進一步篩選
+            if (searchKeyword != null && !searchKeyword.isBlank()) {
+                String keyword = searchKeyword.toLowerCase().trim();
+                available = available.stream()
+                    .filter(acc ->
+                        acc.getLocation().toLowerCase().contains(keyword) ||
+                        acc.getName().toLowerCase().contains(keyword)
+                    )
+                    .collect(java.util.stream.Collectors.toList());
+            }
+
+            return bookingService.sortAccommodations(available, sortBy);
+        }
+
+        // 只有關鍵字的情況
+        if (searchKeyword != null && !searchKeyword.isBlank()) {
+            return bookingService.searchByLocationOrName(searchKeyword, sortBy);
+        }
+
+        // 沒有任何條件，返回所有住宿
+        return bookingService.getAllAccommodations(sortBy);
     }
 
     @GetMapping("/available")
@@ -92,5 +133,21 @@ public class AccommodationController {
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut
     ) {
         return bookingService.getAvailableAccommodations(checkIn, checkOut);
+    }
+
+    @GetMapping("/{id}/room-types")
+    @Operation(
+        summary = "取得住宿的房型列表",
+        description = "查詢指定住宿的所有可用房型"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "成功取得房型列表"),
+        @ApiResponse(responseCode = "404", description = "找不到該住宿")
+    })
+    public List<RoomType> getRoomTypesByAccommodation(
+        @Parameter(description = "住宿 ID", required = true, example = "1")
+        @PathVariable Long id
+    ) {
+        return bookingService.getRoomTypesForAccommodation(id);
     }
 }

@@ -30,7 +30,7 @@ public class UserController {
     @Operation(
         summary = "註冊新帳號",
         description = """
-            註冊新使用者帳號。帳號需 3-20 字元，密碼至少 6 字元。
+            註冊新使用者帳號。帳號需 3-20 字元，密碼至少 6 字元，Email 必填。
             註冊後預設為一般用戶角色（ROLE_USER）。
             """
     )
@@ -48,13 +48,20 @@ public class UserController {
         @Parameter(description = "使用者帳號（3-20 字元）", required = true, example = "newuser")
         @RequestParam String username,
         @Parameter(description = "密碼（至少 6 字元）", required = true, example = "password123")
-        @RequestParam String password) {
+        @RequestParam String password,
+        @Parameter(description = "電子郵件", required = true, example = "user@example.com")
+        @RequestParam String email,
+        @Parameter(description = "全名", required = false, example = "張三")
+        @RequestParam(required = false) String fullName,
+        @Parameter(description = "聯絡電話", required = false, example = "0912-345-678")
+        @RequestParam(required = false) String phone) {
 
         // 基本验证
         if (username == null || username.isBlank() ||
-                password == null || password.isBlank()) {
+                password == null || password.isBlank() ||
+                email == null || email.isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("帳號與密碼不得為空");
+                    .body("帳號、密碼與電子郵件不得為空");
         }
 
         // 长度验证
@@ -67,10 +74,22 @@ public class UserController {
                     .body("密碼至少需要6個字元");
         }
 
+        // Email 格式驗證
+        if (!email.contains("@")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("請輸入有效的電子郵件");
+        }
+
         // 检查用户名是否已存在
         if (userRepository.findByUsername(username).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("此帳號已被使用");
+        }
+
+        // 檢查 Email 是否已存在
+        if (userRepository.findByEmail(email).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("此電子郵件已被使用");
         }
 
         try {
@@ -78,6 +97,9 @@ public class UserController {
             user.setUsername(username);
             user.setPassword(passwordEncoder.encode(password)); // 加密
             user.setRole("ROLE_USER"); // 确保角色前缀正确
+            user.setEmail(email);
+            user.setFullName(fullName != null ? fullName : username); // 如果沒填全名，使用帳號
+            user.setPhone(phone);
 
             userRepository.save(user);
             return ResponseEntity.ok("註冊成功");

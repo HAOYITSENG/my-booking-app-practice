@@ -8,7 +8,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // Swagger annotations
 import io.swagger.v3.oas.annotations.Operation;
@@ -75,6 +77,37 @@ public class BookingController {
         LocalDate out = LocalDate.parse(checkOut);
         Booking booking = bookingService.bookByRoomType(roomTypeId, in, out, quantity);
         return ResponseEntity.ok(booking);
+    }
+
+    // === 2-2. 訂房 API（返回 JSON 格式，供前端使用）===
+    @PostMapping("/book-by-room-type")
+    @Operation(
+        summary = "建立訂單（前端專用）",
+        description = "根據房型 ID、入住/退房日期與房間數量建立新訂單，返回 JSON 格式回應。"
+    )
+    public ResponseEntity<Map<String, Object>> bookByRoomTypeJson(
+            @RequestParam Long roomTypeId,
+            @RequestParam String checkIn,
+            @RequestParam String checkOut,
+            @RequestParam(defaultValue = "1") Integer quantity
+    ) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            LocalDate in = LocalDate.parse(checkIn);
+            LocalDate out = LocalDate.parse(checkOut);
+            Booking booking = bookingService.bookByRoomType(roomTypeId, in, out, quantity);
+
+            response.put("success", true);
+            response.put("message", "訂房成功");
+            response.put("bookingId", booking.getId());
+            response.put("totalPrice", booking.getTotalPrice());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     // === 3. 使用者查自己的訂單（自動取登入帳號） ===

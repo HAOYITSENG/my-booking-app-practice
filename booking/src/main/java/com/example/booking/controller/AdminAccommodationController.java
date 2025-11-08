@@ -49,6 +49,7 @@ public class AdminAccommodationController {
                     existing.setLocation(accommodation.getLocation());
                     existing.setDescription(accommodation.getDescription());
                     existing.setPricePerNight(accommodation.getPricePerNight());
+                    existing.setImageUrl(accommodation.getImageUrl()); // ✅ 添加圖片 URL 更新
                     return ResponseEntity.ok(accommodationRepository.save(existing));
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());

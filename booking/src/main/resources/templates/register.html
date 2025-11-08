@@ -12,16 +12,32 @@
             <h3 class="text-center mb-3">註冊新帳號</h3>
             <form id="registerForm">
                 <div class="mb-3">
-                    <label class="form-label">帳號</label>
+                    <label class="form-label">帳號 <span class="text-danger">*</span></label>
                     <input type="text" id="username" class="form-control" required
                            pattern=".{3,20}" title="帳號長度需要在3到20個字元之間">
                     <div class="form-text">帳號長度需要在3到20個字元之間</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">密碼</label>
+                    <label class="form-label">密碼 <span class="text-danger">*</span></label>
                     <input type="password" id="password" class="form-control" required
                            pattern=".{6,}" title="密碼至少需要6個字元">
                     <div class="form-text">密碼至少需要6個字元</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">電子郵件 <span class="text-danger">*</span></label>
+                    <input type="email" id="email" class="form-control" required
+                           placeholder="example@email.com">
+                    <div class="form-text">用於忘記密碼功能</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">全名</label>
+                    <input type="text" id="fullName" class="form-control"
+                           placeholder="請輸入您的姓名">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">聯絡電話</label>
+                    <input type="tel" id="phone" class="form-control"
+                           placeholder="0912-345-678">
                 </div>
                 <button type="submit" class="btn btn-primary w-100">註冊</button>
                 <a href="/login" class="btn btn-link w-100 mt-2">返回登入</a>
@@ -36,6 +52,9 @@
         e.preventDefault();
         const username = document.getElementById("username").value;
         const password = document.getElementById("password").value;
+        const email = document.getElementById("email").value;
+        const fullName = document.getElementById("fullName").value;
+        const phone = document.getElementById("phone").value;
 
         // 表單驗證
         if (username.length < 3 || username.length > 20) {
@@ -46,10 +65,17 @@
             showMessage("密碼至少需要6個字元", false);
             return;
         }
+        if (!email || !email.includes('@')) {
+            showMessage("請輸入有效的電子郵件", false);
+            return;
+        }
 
         const formData = new URLSearchParams();
         formData.append("username", username);
         formData.append("password", password);
+        formData.append("email", email);
+        if (fullName) formData.append("fullName", fullName);
+        if (phone) formData.append("phone", phone);
 
         try {
             const res = await fetch("/api/auth/register", {

@@ -40,10 +40,17 @@ public class SecurityConfig {
                         .requestMatchers("/owner-dashboard", "/owner-accommodations", "/owner-bookings", "/api/owner/**").hasRole("OWNER")
                         // 一般用戶頁面
                         .requestMatchers("/user-bookings").authenticated()
+                        // 用戶個人資料和收藏功能（需登入）
+                        .requestMatchers("/user/profile", "/user/favorites", "/user/api/**", "/user/favorites/api/**").authenticated()
+                        // 忘記密碼和重設密碼（公開）
+                        .requestMatchers("/user/forgot-password", "/user/reset-password").permitAll()
                         // 允許靜態資源和認證相關端點
                         .requestMatchers("/h2-console/**", "/login", "/register", "/css/**", "/js/**", "/images/**","/api/auth/**").permitAll()
-                        // 允許公開訪問的 API
-                        .requestMatchers("/api/accommodations/**").permitAll()
+                        // 允許公開訪問的 API 和頁面
+                        .requestMatchers("/api/accommodations/**", "/accommodations/**").permitAll()
+                        // 評論 API（讀取公開，新增需登入）
+                        .requestMatchers("/api/reviews/accommodation/**").permitAll()
+                        .requestMatchers("/api/reviews/**").authenticated()
                         // 匯出功能權限設定
                         .requestMatchers("/api/export/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/export/owner/**").hasRole("OWNER")

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,7 +24,8 @@ public class BookingService {
     @Autowired private RoomTypeRepository roomTypeRepo;
 
     // === 初始化資料 ===
-    @PostConstruct
+    // 註解：改用 data.sql 初始化資料，不再使用 Java 代碼初始化
+    // @PostConstruct
     public void initData() {
         System.out.println("🔧 初始化資料檢查開始...");
 
@@ -36,17 +38,26 @@ public class BookingService {
             admin.setUsername("admin");
             admin.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("admin123"));
             admin.setRole("ROLE_ADMIN");
+            admin.setEmail("admin@example.com");
+            admin.setFullName("系統管理員");
+            admin.setPhone("0900-000-000");
 
             User user = new User();
             user.setUsername("user");
             user.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("user123"));
-            user.setRole("ROLE_USER"); // 修正：原本錯誤地設置給了admin
+            user.setRole("ROLE_USER");
+            user.setEmail("user@example.com");
+            user.setFullName("一般用戶");
+            user.setPhone("0911-111-111");
 
             // 建立房東帳號
             User owner = new User();
             owner.setUsername("owner");
             owner.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("owner123"));
             owner.setRole("ROLE_OWNER");
+            owner.setEmail("owner@example.com");
+            owner.setFullName("房東");
+            owner.setPhone("0922-222-222");
 
             userRepo.saveAll(List.of(admin, user, owner));
             System.out.println("✅ 已建立帳號：admin / user / owner");
@@ -103,6 +114,7 @@ public class BookingService {
     }
 
     // === 以住宿 ID 下單（相容舊版）===
+    @Transactional
     public Booking book(long accommodationId, LocalDate checkIn, LocalDate checkOut) {
         List<RoomType> rts = roomTypeRepo.findByAccommodationId(accommodationId);
         if (rts.isEmpty()) {
@@ -113,6 +125,7 @@ public class BookingService {
     }
 
     // === 以房型 ID 下單（正式邏輯）===
+    @Transactional
     public Booking bookByRoomType(long roomTypeId, LocalDate checkIn, LocalDate checkOut, int quantity) {
         if (checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
             throw new RuntimeException("日期區間不合法");
@@ -161,14 +174,131 @@ public class BookingService {
 
     // === 查詢 ===
     public List<Accommodation> getAllAccommodations() {
-        return accommodationRepo.findAll();
+        return getAllAccommodations(null);
+    }
+
+    public List<Accommodation> getAllAccommodations(String sortBy) {
+        List<Accommodation> accommodations = accommodationRepo.findAll();
+        return sortAccommodations(accommodations, sortBy);
     }
 
     public List<Accommodation> searchByLocation(String location) {
+        return searchByLocation(location, null);
+    }
+
+    public List<Accommodation> searchByLocation(String location, String sortBy) {
+        List<Accommodation> accommodations;
         if (location == null || location.isBlank()) {
-            return accommodationRepo.findAll();
+            accommodations = accommodationRepo.findAll();
+        } else {
+            accommodations = accommodationRepo.findByLocationContainingIgnoreCase(location);
         }
-        return accommodationRepo.findByLocationContainingIgnoreCase(location);
+        return sortAccommodations(accommodations, sortBy);
+    }
+
+    // 地點或名稱搜尋（新增）
+    public List<Accommodation> searchByLocationOrName(String keyword, String sortBy) {
+        List<Accommodation> accommodations;
+        if (keyword == null || keyword.isBlank()) {
+            accommodations = accommodationRepo.findAll();
+        } else {
+            String searchKeyword = keyword.trim().toLowerCase();
+            // 搜尋地點或名稱包含關鍵字的住宿
+            accommodations = accommodationRepo.findAll().stream()
+                    .filter(acc ->
+                        acc.getLocation().toLowerCase().contains(searchKeyword) ||
+                        acc.getName().toLowerCase().contains(searchKeyword)
+                    )
+                    .collect(java.util.stream.Collectors.toList());
+        }
+        return sortAccommodations(accommodations, sortBy);
+    }
+
+    /**
+     * 排序住宿列表（改為 public 以便 Controller 調用)
+     * @param accommodations 住宿列表
+     * @param sortBy 排序方式
+     * @return 排序後的列表
+     */
+    public List<Accommodation> sortAccommodations(List<Accommodation> accommodations, String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return accommodations; // 不排序，返回原始順序
+        }
+
+        return switch (sortBy.toLowerCase()) {
+            case "price_asc", "price_low" -> accommodations.stream()
+                    .sorted((a, b) -> {
+                        BigDecimal priceA = a.getPricePerNight() != null ? a.getPricePerNight() : BigDecimal.ZERO;
+                        BigDecimal priceB = b.getPricePerNight() != null ? b.getPricePerNight() : BigDecimal.ZERO;
+                        return priceA.compareTo(priceB);
+                    })
+                    .toList();
+
+            case "price_desc", "price_high" -> accommodations.stream()
+                    .sorted((a, b) -> {
+                        BigDecimal priceA = a.getPricePerNight() != null ? a.getPricePerNight() : BigDecimal.ZERO;
+                        BigDecimal priceB = b.getPricePerNight() != null ? b.getPricePerNight() : BigDecimal.ZERO;
+                        return priceB.compareTo(priceA);
+                    })
+                    .toList();
+
+            case "rating", "rating_desc" -> accommodations.stream()
+                    .sorted((a, b) -> {
+                        BigDecimal ratingA = a.getRating() != null ? a.getRating() : BigDecimal.ZERO;
+                        BigDecimal ratingB = b.getRating() != null ? b.getRating() : BigDecimal.ZERO;
+                        int ratingCompare = ratingB.compareTo(ratingA); // 高到低
+                        if (ratingCompare != 0) return ratingCompare;
+                        // 評分相同時，按評論數量排序
+                        Integer reviewA = a.getReviewCount() != null ? a.getReviewCount() : 0;
+                        Integer reviewB = b.getReviewCount() != null ? b.getReviewCount() : 0;
+                        return reviewB.compareTo(reviewA);
+                    })
+                    .toList();
+
+            case "popularity", "recommended" -> accommodations.stream()
+                    .sorted((a, b) -> {
+                        // 綜合評分：訂房次數 * 0.7 + 評分 * 評論數 * 0.3
+                        Integer bookingA = a.getBookingCount() != null ? a.getBookingCount() : 0;
+                        Integer bookingB = b.getBookingCount() != null ? b.getBookingCount() : 0;
+
+                        BigDecimal ratingA = a.getRating() != null ? a.getRating() : BigDecimal.ZERO;
+                        BigDecimal ratingB = b.getRating() != null ? b.getRating() : BigDecimal.ZERO;
+                        Integer reviewA = a.getReviewCount() != null ? a.getReviewCount() : 0;
+                        Integer reviewB = b.getReviewCount() != null ? b.getReviewCount() : 0;
+
+                        double scoreA = bookingA * 0.7 + ratingA.doubleValue() * reviewA * 0.3;
+                        double scoreB = bookingB * 0.7 + ratingB.doubleValue() * reviewB * 0.3;
+
+                        return Double.compare(scoreB, scoreA); // 高到低
+                    })
+                    .toList();
+
+            case "distance", "distance_asc" -> accommodations.stream()
+                    .sorted((a, b) -> {
+                        BigDecimal distA = a.getDistanceFromCenter() != null ? a.getDistanceFromCenter() : BigDecimal.valueOf(999);
+                        BigDecimal distB = b.getDistanceFromCenter() != null ? b.getDistanceFromCenter() : BigDecimal.valueOf(999);
+                        return distA.compareTo(distB); // 近到遠
+                    })
+                    .toList();
+
+            case "name_asc", "name_a_z" -> accommodations.stream()
+                    .sorted((a, b) -> {
+                        String nameA = a.getName() != null ? a.getName() : "";
+                        String nameB = b.getName() != null ? b.getName() : "";
+                        return nameA.compareToIgnoreCase(nameB);
+                    })
+                    .toList();
+
+            case "name_desc", "name_z_a" -> accommodations.stream()
+                    .sorted((a, b) -> {
+                        String nameA = a.getName() != null ? a.getName() : "";
+                        String nameB = b.getName() != null ? b.getName() : "";
+                        return nameB.compareToIgnoreCase(nameA);
+                    })
+                    .toList();
+
+            default -> accommodations; // 未知排序方式，返回原始順序
+        };
     }
 
     public List<Booking> getBookingsForUser(String username) {
@@ -186,6 +316,7 @@ public class BookingService {
     }
 
     // === 一般用戶取消訂單（需為訂單所有者） ===
+    @Transactional
     public Booking cancelBooking(Long bookingId, String username) {
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("找不到訂單 ID=" + bookingId));
@@ -211,6 +342,7 @@ public class BookingService {
     }
 
     // === 管理員取消訂單（可取消任意訂單） ===
+    @Transactional
     public Booking cancelBookingByAdmin(Long bookingId) {
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("找不到訂單 ID=" + bookingId));
@@ -255,6 +387,7 @@ public class BookingService {
         existing.setDescription(updatedAccommodation.getDescription());
         existing.setPricePerNight(updatedAccommodation.getPricePerNight());
         existing.setAmenities(updatedAccommodation.getAmenities());
+        existing.setImageUrl(updatedAccommodation.getImageUrl()); // ✅ 添加圖片 URL 更新
 
         return accommodationRepo.save(existing);
     }
