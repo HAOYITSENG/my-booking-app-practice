@@ -299,6 +299,25 @@ public class BookingService {
         return roomTypeRepo.save(newRoomType);
     }
 
+    // 更新房型
+    public RoomType updateRoomType(Long roomTypeId, RoomType updatedRoomType, String username) {
+        RoomType existing = roomTypeRepo.findById(roomTypeId)
+                .orElseThrow(() -> new RuntimeException("找不到房型 ID=" + roomTypeId));
+
+        // 所有權檢查
+        if (!existing.getAccommodation().getOwner().getUsername().equals(username)) {
+            throw new RuntimeException("無權限修改此房型");
+        }
+
+        // 只更新允許的欄位
+        existing.setName(updatedRoomType.getName());
+        existing.setDescription(updatedRoomType.getDescription());
+        existing.setPricePerNight(updatedRoomType.getPricePerNight());
+        existing.setTotalRooms(updatedRoomType.getTotalRooms());
+
+        return roomTypeRepo.save(existing);
+    }
+
     // 刪除房型
     public void deleteRoomType(Long roomTypeId, String username) {
         RoomType roomType = roomTypeRepo.findById(roomTypeId)
@@ -374,5 +393,55 @@ public class BookingService {
 
         booking.setStatus("CONFIRMED");
         return bookingRepo.save(booking);
+    }
+
+    // === 管理員專用方法 (不檢查所有權) ===
+    /**
+     * 管理員新增房型
+     */
+    public RoomType createRoomTypeForAdmin(Long accId, RoomType newRoomType) {
+        Accommodation acc = accommodationRepo.findById(accId)
+                .orElseThrow(() -> new RuntimeException("找不到住宿 ID=" + accId));
+
+        newRoomType.setAccommodation(acc);
+        return roomTypeRepo.save(newRoomType);
+    }
+
+    /**
+     * 管理員更新房型
+     */
+    public RoomType updateRoomTypeForAdmin(Long roomTypeId, RoomType updatedRoomType) {
+        RoomType existing = roomTypeRepo.findById(roomTypeId)
+                .orElseThrow(() -> new RuntimeException("找不到房型 ID=" + roomTypeId));
+
+        // 管理員直接更新，不檢查所有權
+        existing.setName(updatedRoomType.getName());
+        existing.setDescription(updatedRoomType.getDescription());
+        existing.setPricePerNight(updatedRoomType.getPricePerNight());
+        existing.setTotalRooms(updatedRoomType.getTotalRooms());
+
+        return roomTypeRepo.save(existing);
+    }
+
+    /**
+     * 管理員刪除房型
+     */
+    public void deleteRoomTypeForAdmin(Long roomTypeId) {
+        RoomType roomType = roomTypeRepo.findById(roomTypeId)
+                .orElseThrow(() -> new RuntimeException("找不到房型 ID=" + roomTypeId));
+
+        // 管理員直接刪除，不檢查所有權
+        roomTypeRepo.deleteById(roomTypeId);
+    }
+
+    /**
+     * 管理員取得房型 (不檢查所有權)
+     */
+    public List<RoomType> getRoomTypesForAdmin(Long accId) {
+        // 驗證住宿是否存在
+        if (!accommodationRepo.existsById(accId)) {
+            throw new RuntimeException("找不到住宿 ID=" + accId);
+        }
+        return roomTypeRepo.findByAccommodationId(accId);
     }
 }

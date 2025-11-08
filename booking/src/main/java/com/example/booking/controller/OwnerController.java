@@ -62,6 +62,14 @@ public class OwnerController {
         return bookingService.getRoomTypesForAccommodation(accId);
     }
 
+    @PutMapping("/room-types/{id}")
+    public RoomType updateRoomType(
+            @PathVariable Long id,
+            @RequestBody RoomType roomType,
+            Authentication authentication) {
+        return bookingService.updateRoomType(id, roomType, authentication.getName());
+    }
+
     @DeleteMapping("/room-types/{id}")
     public void deleteRoomType(
             @PathVariable Long id,

@@ -100,6 +100,42 @@
         </section>
     </main>
 
+    <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100; justify-content:center; align-items:center;">
+        <div style="background:white; padding:20px; border-radius:8px; width:500px;">
+            <h2>編輯住宿</h2>
+            <form id="editAccommodationForm">
+                <input type="hidden" id="editAccommodationId">
+                <div class="form-group">
+                    <label for="editName">名稱</label>
+                    <input type="text" id="editName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="editLocation">地點</label>
+                    <input type="text" id="editLocation" name="location" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDescription">描述</label>
+                    <textarea id="editDescription" name="description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editPricePerNight">每晚價格</label>
+                    <input type="number" id="editPricePerNight" name="pricePerNight" required min="0">
+                </div>
+                <div style="margin-top:20px;">
+                    <button type="submit" class="btn btn-primary">儲存變更</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        /* 確保 Modal 內的 form-group 樣式正確 */
+        #editModal .form-group { margin-bottom: 15px; }
+        #editModal .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        #editModal .form-group input, #editModal .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+
     <script>
         // 載入房東的住宿列表
         async function loadAccommodations() {
@@ -116,7 +152,7 @@
                         <p>描述：${acc.description}</p>
                         <p>價格：NT$${acc.pricePerNight} /晚</p>
                         <div class="actions">
-                            <button class="btn btn-secondary" onclick="editAccommodation(${acc.id})">編輯</button>
+                            <button class="btn btn-secondary" onclick="openEditModal(${acc.id}, '/api/owner/accommodations')">編輯</button>
                             <button class="btn btn-danger" onclick="deleteAccommodation(${acc.id})">刪除</button>
                             <button class="btn btn-primary" onclick="manageRoomTypes(${acc.id})">管理房型</button>
                         </div>
@@ -173,14 +209,79 @@
             }
         }
 
-        // 編輯住宿（待實現）
-        function editAccommodation(id) {
-            alert('編輯功能開發中...');
-        }
-
         // 管理房型
         function manageRoomTypes(id) {
             window.location.href = `/room-type-management?id=${id}`;
+        }
+
+        // 顯示 Modal
+        function showEditModal() {
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        // 關閉 Modal
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editAccommodationForm').reset();
+        }
+
+        // 1. 打開編輯 Modal 並載入資料
+        async function openEditModal(id, apiPrefix) {
+            try {
+                // 使用公用的 GET API 來獲取資料
+                const response = await fetch(`/api/accommodations/${id}`);
+
+                if (!response.ok) throw new Error('載入住宿資料失敗');
+
+                const acc = await response.json();
+
+                // 填充 Modal 表單
+                document.getElementById('editAccommodationId').value = acc.id;
+                document.getElementById('editName').value = acc.name;
+                document.getElementById('editLocation').value = acc.location;
+                document.getElementById('editDescription').value = acc.description;
+                document.getElementById('editPricePerNight').value = acc.pricePerNight;
+
+                // 動態設定表單提交事件，傳入 API 路徑
+                document.getElementById('editAccommodationForm').onsubmit = (e) => {
+                    e.preventDefault();
+                    handleEditSubmit(apiPrefix);
+                };
+
+                showEditModal();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        // 2. 處理編輯表單提交
+        async function handleEditSubmit(apiPrefix) {
+            const id = document.getElementById('editAccommodationId').value;
+            try {
+                const formData = {
+                    name: document.getElementById('editName').value,
+                    location: document.getElementById('editLocation').value,
+                    description: document.getElementById('editDescription').value,
+                    pricePerNight: document.getElementById('editPricePerNight').value
+                };
+
+                // 使用傳入的 apiPrefix ( /api/owner/accommodations )
+                const response = await fetch(`${apiPrefix}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) throw new Error('更新失敗');
+
+                alert('更新成功！');
+                closeEditModal();
+                loadAccommodations(); // 重新載入列表
+            } catch (error) {
+                alert('更新失敗：' + error.message);
+            }
         }
 
         // 頁面載入時載入住宿列表

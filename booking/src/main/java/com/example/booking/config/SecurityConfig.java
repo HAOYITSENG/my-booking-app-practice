@@ -32,8 +32,12 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         // 管理員專用 API 端點
                         .requestMatchers("/api/admin/**", "/api/bookings/admin/**").hasRole("ADMIN")
+                        // 管理員專用頁面
+                        .requestMatchers("/admin-dashboard", "/admin-accommodations", "/admin-bookings", "/admin-users").hasRole("ADMIN")
+                        // 房型管理頁面 (Admin 和 Owner 都可以訪問)
+                        .requestMatchers("/room-type-management").hasAnyRole("ADMIN", "OWNER")
                         // 房東專用頁面和API端點
-                        .requestMatchers("/owner-dashboard", "/owner-accommodations", "/owner-bookings", "/room-type-management", "/api/owner/**").hasRole("OWNER")
+                        .requestMatchers("/owner-dashboard", "/owner-accommodations", "/owner-bookings", "/api/owner/**").hasRole("OWNER")
                         // 一般用戶頁面
                         .requestMatchers("/user-bookings").authenticated()
                         // 允許靜態資源和認證相關端點
