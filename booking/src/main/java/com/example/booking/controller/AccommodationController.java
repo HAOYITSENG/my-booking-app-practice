@@ -130,9 +130,12 @@ public class AccommodationController {
         @Parameter(description = "入住日期", required = true, example = "2025-01-15")
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
         @Parameter(description = "退房日期", required = true, example = "2025-01-18")
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+        @Parameter(description = "排序方式：price_asc(價格低到高), price_desc(價格高到低), rating(評分), popularity(熱門), distance(距離)", example = "price_asc")
+        @RequestParam(required = false) String sortBy
     ) {
-        return bookingService.getAvailableAccommodations(checkIn, checkOut);
+        List<Accommodation> available = bookingService.getAvailableAccommodations(checkIn, checkOut);
+        return bookingService.sortAccommodations(available, sortBy);
     }
 
     @GetMapping("/{id}/room-types")
