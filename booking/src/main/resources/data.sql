@@ -1,5 +1,5 @@
 -- 插入測試用戶資料（明確指定 ID）
-INSERT INTO users (id, username, password, role, email, full_name, phone) VALUES
+INSERT IGNORE INTO users (id, username, password, role, email, full_name, phone) VALUES
 (1, 'admin', '$2a$10$xq/Hiv88tailBWCHP2mJYu6wFVPB2sQZnROdstz0uLX9aAgIpqo9S', 'ROLE_ADMIN', 'admin@example.com', '系統管理員', '0900-000-000'),
 (2, 'owner1', '$2a$10$8ELofG74XL79mNEeOF24VeyWXVYc89XpoWtj1jmjpKF1uelEfnCnK', 'ROLE_OWNER', 'owner1@example.com', '房東一號', '0911-111-111'),
 (3, 'owner2', '$2a$10$8ELofG74XL79mNEeOF24VeyWXVYc89XpoWtj1jmjpKF1uelEfnCnK', 'ROLE_OWNER', 'owner2@example.com', '房東二號', '0922-222-222'),
@@ -8,7 +8,7 @@ INSERT INTO users (id, username, password, role, email, full_name, phone) VALUES
 (6, 'user3', '$2a$10$8ELofG74XL79mNEeOF24VeyWXVYc89XpoWtj1jmjpKF1uelEfnCnK', 'ROLE_USER', 'user3@example.com', '一般用戶三', '0955-555-555');
 
 -- 插入住宿資料（包含完整資訊，明確指定 ID）
-INSERT INTO accommodations (id, name, location, description, price_per_night, amenities, owner_id, rating, review_count, booking_count, distance_from_center, image_url, images, nearby_attractions, address, phone) VALUES
+INSERT IGNORE INTO accommodations (id, name, location, description, price_per_night, amenities, owner_id, rating, review_count, booking_count, distance_from_center, image_url, images, nearby_attractions, address, phone) VALUES
 (1, '台北商旅', '台北', '位於信義區的商務旅館', 2200.00, 'WiFi, 早餐, 停車場', 2, 4.5, 128, 256, 1.2, 'https://picsum.photos/800/600?random=1', 'https://picsum.photos/800/600?random=11,https://picsum.photos/800/600?random=12,https://picsum.photos/800/600?random=13', '台北101, 信義商圈, 國父紀念館', '台北市信義區信義路五段7號', '02-2720-1234'),
 (2, '高雄港景飯店', '高雄', '擁有海景陽台的度假飯店', 1800.00, 'WiFi, 健身房, 游泳池', 2, 4.8, 95, 180, 3.5, 'https://picsum.photos/800/600?random=2', 'https://picsum.photos/800/600?random=21,https://picsum.photos/800/600?random=22,https://picsum.photos/800/600?random=23', '駁二藝術特區, 西子灣, 愛河', '高雄市前鎮區中華五路789號', '07-3331-5678'),
 (3, '台中精品旅館', '台中', '現代化設計的精品旅館', 2500.00, 'WiFi, 會議室, 餐廳', 3, 4.2, 76, 142, 0.8, 'https://picsum.photos/800/600?random=3', 'https://picsum.photos/800/600?random=31,https://picsum.photos/800/600?random=32,https://picsum.photos/800/600?random=33', '逢甲夜市, 國立自然科學博物館, 台中歌劇院', '台中市西屯區台灣大道三段99號', '04-2251-9999'),
@@ -20,7 +20,7 @@ INSERT INTO accommodations (id, name, location, description, price_per_night, am
 
 
 -- 插入房型資料（明確指定 ID）
-INSERT INTO room_types (id, name, description, price_per_night, total_rooms, accommodation_id) VALUES
+INSERT IGNORE INTO room_types (id, name, description, price_per_night, total_rooms, accommodation_id) VALUES
 -- 台北商旅 (ID=1)
 (1, '標準房', '基本設施的標準房型', 2200.00, 10, 1),
 (2, '豪華房', '提供更高級設施的豪華房型', 3200.00, 5, 1),
@@ -46,7 +46,7 @@ INSERT INTO room_types (id, name, description, price_per_night, total_rooms, acc
 (15, '溫泉套房', '豪華溫泉套房', 4200.00, 5, 8);
 
 -- 插入訂單資料（包含各種狀態和時間分布）
-INSERT INTO bookings (user_id, room_type_id, check_in, check_out, booked_quantity, total_price, status, created_at) VALUES
+INSERT IGNORE INTO bookings (user_id, room_type_id, check_in, check_out, booked_quantity, total_price, status, created_at) VALUES
 -- 最近一週的訂單
 (4, 1, '2025-11-10', '2025-11-12', 1, 4400.00, 'CONFIRMED', '2025-11-01 10:30:00'),
 (5, 2, '2025-11-11', '2025-11-13', 1, 6400.00, 'CONFIRMED', '2025-11-01 14:20:00'),
@@ -76,7 +76,7 @@ INSERT INTO bookings (user_id, room_type_id, check_in, check_out, booked_quantit
 (6, 8, '2025-08-20', '2025-08-22', 1, 4400.00, 'CONFIRMED', '2025-08-12 13:15:00');
 
 -- 插入評論資料
-INSERT INTO reviews (accommodation_id, user_id, rating, comment, created_at, helpful_count) VALUES
+INSERT IGNORE INTO reviews (accommodation_id, user_id, rating, comment, created_at, helpful_count) VALUES
 -- 台北商旅的評論
 (1, 4, 4.5, '地點非常好，就在信義區旁邊，交通超級方便！早餐也很豐盛。', '2025-10-18 10:30:00', 15),
 (1, 5, 4.0, '房間乾淨整潔，服務人員態度親切。唯一缺點是隔音稍微差一點。', '2025-09-20 14:20:00', 8),
